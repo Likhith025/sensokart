@@ -38,7 +38,7 @@ app.get('/health', (req, res) => {
 
 // Self-ping to keep Render free-tier alive
 setInterval(() => {
-  fetch(`https://your-app.onrender.com/health`)
+  fetch(`https://sensokart.onrender.com/health`)
     .then(res => console.log('Self-ping success:', res.status))
     .catch(err => console.error('Self-ping failed:', err));
 }, 4 * 60 * 1000); // every 4 minutes
