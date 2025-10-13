@@ -41,7 +41,7 @@ setInterval(() => {
   fetch(`https://sensokart.onrender.com/health`)
     .then(res => console.log('Self-ping success:', res.status))
     .catch(err => console.error('Self-ping failed:', err));
-}, 4 * 60 * 1000); // every 4 minutes
+}, 30 * 1000); // every 30 seconds
 
 // Start server
 app.listen(PORT, () => {
