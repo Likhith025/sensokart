@@ -120,6 +120,8 @@ const Home = () => {
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
+    fetchBrands();
   }, []);
 
   const fetchBrands = async () => {
@@ -360,6 +362,61 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar cartItems={cartItems} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+        {/* Header Section */}
+{/* Categories Section */}
+<div className="my-12">
+  <h2 className="text-3xl font-extrabold mb-8 text-gray-900">Categories</h2>
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+    {categories.map((category) => (
+      <div
+        key={category._id}
+        onClick={() => handleFilterChange('category', category._id)}
+        className="bg-white p-6 rounded-xl shadow-md text-center cursor-pointer border border-transparent
+                   transform transition duration-300 hover:scale-105
+                   hover:shadow-xl hover:border-green-400 hover:bg-gradient-to-br hover:from-green-50 hover:to-green-100"
+      >
+        <div className="flex items-center justify-center mb-4">
+          {/* Icon placeholder */}
+          <div className="h-14 w-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl font-bold
+                         transition duration-300 hover:bg-green-200 hover:text-green-700">
+            {category.name.charAt(0)}
+          </div>
+        </div>
+        <p className="text-lg font-semibold text-gray-800 transition-colors duration-300 hover:text-green-700">
+          {category.name}
+        </p>
+      </div>
+    ))}
+  </div>
+</div>
+
+{/* Brands Section */}
+<div className="my-12">
+  <h2 className="text-3xl font-extrabold mb-8 text-gray-900">Brands</h2>
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+    {brands.map((brand) => (
+      <div
+        key={brand._id}
+        onClick={() => handleFilterChange('brand', brand._id)}
+        className="bg-white p-6 rounded-xl shadow-md text-center cursor-pointer border border-transparent
+                   transform transition duration-300 hover:scale-105
+                   hover:shadow-xl hover:border-green-400 hover:bg-gradient-to-br hover:from-green-50 hover:to-green-100"
+      >
+        <div className="flex items-center justify-center mb-4">
+          {/* Icon placeholder */}
+          <div className="h-14 w-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl font-bold
+                         transition duration-300 hover:bg-green-200 hover:text-green-700">
+            {brand.name.charAt(0)}
+          </div>
+        </div>
+        <p className="text-lg font-semibold text-gray-800 transition-colors duration-300 hover:text-green-700">
+          {brand.name}
+        </p>
+      </div>
+    ))}
+  </div>
+</div>
+
         {/* Search Bar */}
         <div className="text-center mb-12">
           <div className="relative max-w-xl mx-auto">
@@ -389,8 +446,6 @@ const Home = () => {
             </button>
           </div>
         )}
-
-        {/* Filters */}
 
         {/* Cart Summary */}
         {cartItems.length > 0 && (
@@ -504,135 +559,135 @@ const Home = () => {
             )}
           </div>
         )}
-      </div>
 
-      {/* Add Product Modal */}
-      {showAddModal && userRole === 'admin' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">Add New Product</h2>
-            {addError && <p className="text-red-500 mb-4">{addError}</p>}
-            {addSuccess && <p className="text-green-500 mb-4">{addSuccess}</p>}
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              <input name="name" value={addFormData.name} onChange={handleAddInputChange} placeholder="Name" required className="w-full p-2 border rounded" />
-              <textarea name="description" value={addFormData.description} onChange={handleAddInputChange} placeholder="Description" required className="w-full p-2 border rounded" rows="3" />
-              <input name="price" type="number" value={addFormData.price} onChange={handleAddInputChange} placeholder="Price" required className="w-full p-2 border rounded" />
-              <input name="salePrice" type="number" value={addFormData.salePrice} onChange={handleAddInputChange} placeholder="Sale Price (optional)" className="w-full p-2 border rounded" />
-              
-              {/* Brand Dropdown with Add */}
-              <div>
-                <div className="flex items-center space-x-2">
-                  <select name="brand" value={addFormData.brand} onChange={handleAddInputChange} required className="flex-1 p-2 border rounded">
-                    <option value="">Select Brand</option>
-                    {brands.map(b => (
-                      <option key={b._id} value={b._id}>{b.name}</option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={() => setShowAddBrand(!showAddBrand)} className="px-2 py-2 bg-gray-200 rounded hover:bg-gray-300">
-                    +
+        {/* Add Product Modal */}
+        {showAddModal && userRole === 'admin' && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4">Add New Product</h2>
+              {addError && <p className="text-red-500 mb-4">{addError}</p>}
+              {addSuccess && <p className="text-green-500 mb-4">{addSuccess}</p>}
+              <form onSubmit={handleAddSubmit} className="space-y-4">
+                <input name="name" value={addFormData.name} onChange={handleAddInputChange} placeholder="Name" required className="w-full p-2 border rounded" />
+                <textarea name="description" value={addFormData.description} onChange={handleAddInputChange} placeholder="Description" required className="w-full p-2 border rounded" rows="3" />
+                <input name="price" type="number" value={addFormData.price} onChange={handleAddInputChange} placeholder="Price" required className="w-full p-2 border rounded" />
+                <input name="salePrice" type="number" value={addFormData.salePrice} onChange={handleAddInputChange} placeholder="Sale Price (optional)" className="w-full p-2 border rounded" />
+                
+                {/* Brand Dropdown with Add */}
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <select name="brand" value={addFormData.brand} onChange={handleAddInputChange} required className="flex-1 p-2 border rounded">
+                      <option value="">Select Brand</option>
+                      {brands.map(b => (
+                        <option key={b._id} value={b._id}>{b.name}</option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => setShowAddBrand(!showAddBrand)} className="px-2 py-2 bg-gray-200 rounded hover:bg-gray-300">
+                      +
+                    </button>
+                  </div>
+                  {showAddBrand && (
+                    <div className="mt-2 flex space-x-2">
+                      <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="New Brand Name" className="flex-1 p-2 border rounded" />
+                      <button type="button" onClick={handleAddBrand} className="px-2 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Category Dropdown with Add */}
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <select name="category" value={addFormData.category} onChange={handleAddInputChange} required className="flex-1 p-2 border rounded">
+                      <option value="">Select Category</option>
+                      {categories.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="px-2 py-2 bg-gray-200 rounded hover:bg-gray-300">
+                      +
+                    </button>
+                  </div>
+                  {showAddCategory && (
+                    <div className="mt-2 flex space-x-2">
+                      <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="New Category Name" className="flex-1 p-2 border rounded" />
+                      <button type="button" onClick={handleAddCategory} className="px-2 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Subcategory Dropdown with Add */}
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <select name="subCategory" value={addFormData.subCategory} onChange={handleAddInputChange} required className="flex-1 p-2 border rounded">
+                      <option value="">Select Subcategory</option>
+                      {subCategories.map(s => (
+                        <option key={s._id} value={s._id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => setShowAddSubCategory(!showAddSubCategory)} className="px-2 py-2 bg-gray-200 rounded hover:bg-gray-300">
+                      +
+                    </button>
+                  </div>
+                  {showAddSubCategory && (
+                    <div className="mt-2 flex space-x-2">
+                      <input value={newSubCategoryName} onChange={(e) => setNewSubCategoryName(e.target.value)} placeholder="New Subcategory Name" className="flex-1 p-2 border rounded" />
+                      <button type="button" onClick={handleAddSubCategory} className="px-2 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <input name="quantity" type="number" value={addFormData.quantity} onChange={handleAddInputChange} placeholder="Quantity" required className="w-full p-2 border rounded" />
+                <input name="features" value={addFormData.features} onChange={handleAddInputChange} placeholder="Features (comma separated)" className="w-full p-2 border rounded" />
+                
+                {/* Specifications Key-Value Fields */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Specifications</label>
+                  {specsFields.map((field, index) => (
+                    <div key={index} className="flex space-x-2 mb-2">
+                      <input
+                        value={field.key}
+                        onChange={(e) => handleSpecsChange(index, 'key', e.target.value)}
+                        placeholder="Key"
+                        className="flex-1 p-2 border rounded"
+                      />
+                      <input
+                        value={field.value}
+                        onChange={(e) => handleSpecsChange(index, 'value', e.target.value)}
+                        placeholder="Value"
+                        className="flex-1 p-2 border rounded"
+                      />
+                      <button type="button" onClick={() => removeSpecsField(index)} className="px-2 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                        X
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addSpecsField} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
+                    Add Field
                   </button>
                 </div>
-                {showAddBrand && (
-                  <div className="mt-2 flex space-x-2">
-                    <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="New Brand Name" className="flex-1 p-2 border rounded" />
-                    <button type="button" onClick={handleAddBrand} className="px-2 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
 
-              {/* Category Dropdown with Add */}
-              <div>
-                <div className="flex items-center space-x-2">
-                  <select name="category" value={addFormData.category} onChange={handleAddInputChange} required className="flex-1 p-2 border rounded">
-                    <option value="">Select Category</option>
-                    {categories.map(c => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="px-2 py-2 bg-gray-200 rounded hover:bg-gray-300">
-                    +
+                <input name="sku" value={addFormData.sku} onChange={handleAddInputChange} placeholder="SKU" required className="w-full p-2 border rounded" />
+                <input type="file" onChange={(e) => handleAddFileChange(e, 'cover')} accept="image/*" className="w-full p-2" />
+                <input type="file" multiple onChange={(e) => handleAddFileChange(e, 'images')} accept="image/*" className="w-full p-2" />
+                <div className="flex space-x-4">
+                  <button type="submit" disabled={addLoading} className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                    {addLoading ? 'Adding...' : 'Add Product'}
+                  </button>
+                  <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    Cancel
                   </button>
                 </div>
-                {showAddCategory && (
-                  <div className="mt-2 flex space-x-2">
-                    <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="New Category Name" className="flex-1 p-2 border rounded" />
-                    <button type="button" onClick={handleAddCategory} className="px-2 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Subcategory Dropdown with Add */}
-              <div>
-                <div className="flex items-center space-x-2">
-                  <select name="subCategory" value={addFormData.subCategory} onChange={handleAddInputChange} required className="flex-1 p-2 border rounded">
-                    <option value="">Select Subcategory</option>
-                    {subCategories.map(s => (
-                      <option key={s._id} value={s._id}>{s.name}</option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={() => setShowAddSubCategory(!showAddSubCategory)} className="px-2 py-2 bg-gray-200 rounded hover:bg-gray-300">
-                    +
-                  </button>
-                </div>
-                {showAddSubCategory && (
-                  <div className="mt-2 flex space-x-2">
-                    <input value={newSubCategoryName} onChange={(e) => setNewSubCategoryName(e.target.value)} placeholder="New Subcategory Name" className="flex-1 p-2 border rounded" />
-                    <button type="button" onClick={handleAddSubCategory} className="px-2 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <input name="quantity" type="number" value={addFormData.quantity} onChange={handleAddInputChange} placeholder="Quantity" required className="w-full p-2 border rounded" />
-              <input name="features" value={addFormData.features} onChange={handleAddInputChange} placeholder="Features (comma separated)" className="w-full p-2 border rounded" />
-              
-              {/* Specifications Key-Value Fields */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Specifications</label>
-                {specsFields.map((field, index) => (
-                  <div key={index} className="flex space-x-2 mb-2">
-                    <input
-                      value={field.key}
-                      onChange={(e) => handleSpecsChange(index, 'key', e.target.value)}
-                      placeholder="Key"
-                      className="flex-1 p-2 border rounded"
-                    />
-                    <input
-                      value={field.value}
-                      onChange={(e) => handleSpecsChange(index, 'value', e.target.value)}
-                      placeholder="Value"
-                      className="flex-1 p-2 border rounded"
-                    />
-                    <button type="button" onClick={() => removeSpecsField(index)} className="px-2 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                      X
-                    </button>
-                  </div>
-                ))}
-                <button type="button" onClick={addSpecsField} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
-                  Add Field
-                </button>
-              </div>
-
-              <input name="sku" value={addFormData.sku} onChange={handleAddInputChange} placeholder="SKU" required className="w-full p-2 border rounded" />
-              <input type="file" onChange={(e) => handleAddFileChange(e, 'cover')} accept="image/*" className="w-full p-2" />
-              <input type="file" multiple onChange={(e) => handleAddFileChange(e, 'images')} accept="image/*" className="w-full p-2" />
-              <div className="flex space-x-4">
-                <button type="submit" disabled={addLoading} className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
-                  {addLoading ? 'Adding...' : 'Add Product'}
-                </button>
-                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-                  Cancel
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
