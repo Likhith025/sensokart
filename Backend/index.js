@@ -7,12 +7,16 @@ import router from './routes/Router.js';
 // Load environment variables
 dotenv.config();
 
+
 // Initialize Express app
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
 connectDB();
+app.use(cors()); // ⚠️ Add this
+
 
 // Middleware
 app.use(express.json({ limit: '10mb' })); // increase limit if sending large Base64 images
