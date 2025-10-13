@@ -4,10 +4,8 @@ import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import router from './routes/Router.js';
 
-// Load environment variables
 dotenv.config();
 
-// Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -16,8 +14,8 @@ connectDB();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Routes
 app.use('/api/', router);
@@ -37,6 +35,13 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Self-ping to keep Render free-tier alive
+setInterval(() => {
+  fetch(`https://your-app.onrender.com/health`)
+    .then(res => console.log('Self-ping success:', res.status))
+    .catch(err => console.error('Self-ping failed:', err));
+}, 4 * 60 * 1000); // every 4 minutes
 
 // Start server
 app.listen(PORT, () => {

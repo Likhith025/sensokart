@@ -1,6 +1,34 @@
 import Product from '../models/Product.js';
+import cloudinary from '../config/cloudinary.js';
 
-// Add product with images
+// --- Helper: Cloudinary upload from memory buffer ---
+const streamUpload = (fileBuffer, folder) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    stream.end(fileBuffer);
+  });
+};
+
+// --- Helper: Safely parse JSON from form-data ---
+const safeParseJSON = (value) => {
+  if (!value) return undefined;
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    // handle double-stringified JSON
+    if (typeof parsed === 'string') return JSON.parse(parsed);
+    return parsed;
+  } catch {
+    return value;
+  }
+};
+
+// --- Main Controller ---
 export const addProduct = async (req, res) => {
   try {
     const {
@@ -17,41 +45,69 @@ export const addProduct = async (req, res) => {
       sku
     } = req.body;
 
-    // Get uploaded files
-    const coverPhoto = req.files?.coverPhoto ? req.files.coverPhoto[0].filename : null;
-    const images = req.files?.images ? req.files.images.map(file => file.filename) : [];
+    console.log('📦 Form data received:', req.body);
+    console.log('🖼️ Files received:', req.files);
 
+    let coverPhotoUrl = null;
+    let imageUrls = [];
+
+    // ✅ Upload cover photo (if provided)
+    if (req.files?.coverPhoto?.length > 0) {
+      console.log('Uploading cover photo...');
+      const coverResult = await streamUpload(
+        req.files.coverPhoto[0].buffer,
+        'products/cover'
+      );
+      coverPhotoUrl = coverResult.secure_url;
+      console.log('✅ Cover photo uploaded:', coverPhotoUrl);
+    }
+
+    // ✅ Upload additional images (if provided)
+    if (req.files?.images?.length > 0) {
+      console.log('Uploading additional images...');
+      const uploadPromises = req.files.images.map(file =>
+        streamUpload(file.buffer, 'products/images')
+      );
+      const results = await Promise.all(uploadPromises);
+      imageUrls = results.map(r => r.secure_url);
+      console.log('✅ Additional images uploaded:', imageUrls);
+    }
+
+    // ✅ Parse features & specifications safely
+    const featuresArray = safeParseJSON(features) || [];
+    const specsObject = safeParseJSON(specifications) || {};
+
+    // ✅ Create new product
     const product = new Product({
       name,
       description,
-      price,
-      salePrice,
+      price: parseFloat(price),
+      salePrice: salePrice ? parseFloat(salePrice) : undefined,
       brand,
       category,
       subCategory,
-      quantity: quantity || 0,
-      coverPhoto,
-      images,
-      features: features || [],
-      specifications: specifications || {},
+      quantity: quantity ? parseInt(quantity) : 0,
+      coverPhoto: coverPhotoUrl,
+      images: imageUrls,
+      features: featuresArray,
+      specifications: specsObject, // ✅ fixed — Map now gets correct object
       sku
     });
 
     await product.save();
     await product.populate('brand category subCategory');
 
-    // Add full URLs to response
-    const productWithUrls = {
-      ...product._doc,
-      coverPhoto: coverPhoto ? `${req.protocol}://${req.get('host')}/uploads/${coverPhoto}` : null,
-      images: images.map(image => `${req.protocol}://${req.get('host')}/uploads/${image}`)
-    };
-
+    console.log('✅ Product created successfully');
     res.status(201).json({
       message: 'Product created successfully',
-      product: productWithUrls
+      product
     });
+
   } catch (error) {
+    console.error('❌ Error adding product:', error);
+    if (error.http_code === 400 && error.message === 'Empty file') {
+      return res.status(400).json({ error: 'Cloudinary upload failed: Empty file' });
+    }
     if (error.code === 11000) {
       return res.status(400).json({ error: 'SKU already exists' });
     }
@@ -59,7 +115,7 @@ export const addProduct = async (req, res) => {
   }
 };
 
-// Get all products with full image URLs
+// Get all products
 export const getProducts = async (req, res) => {
   try {
     const { category, brand, minPrice, maxPrice, featured } = req.query;
@@ -90,20 +146,13 @@ export const getProducts = async (req, res) => {
       .populate('brand category subCategory')
       .sort({ createdAt: -1 });
 
-    // Add full URLs to images
-    const productsWithUrls = products.map(product => ({
-      ...product._doc,
-      coverPhoto: product.coverPhoto ? `${req.protocol}://${req.get('host')}/uploads/${product.coverPhoto}` : null,
-      images: product.images.map(image => `${req.protocol}://${req.get('host')}/uploads/${image}`)
-    }));
-
-    res.json(productsWithUrls);
+    res.json(products);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Get product by ID with full image URLs
+// Get product by ID
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -114,25 +163,17 @@ export const getProductById = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Add full URLs to images
-    const productWithUrls = {
-      ...product._doc,
-      coverPhoto: product.coverPhoto ? `${req.protocol}://${req.get('host')}/uploads/${product.coverPhoto}` : null,
-      images: product.images.map(image => `${req.protocol}://${req.get('host')}/uploads/${image}`)
-    };
-
-    res.json(productWithUrls);
+    res.json(product);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-
 // Update product quantity
 export const updateQuantity = async (req, res) => {
   try {
     const { id } = req.params;
-    const { quantity, operation } = req.body; // operation: 'add', 'subtract', 'set'
+    const { quantity, operation } = req.body;
 
     const product = await Product.findById(id);
 
@@ -172,11 +213,27 @@ export const updateQuantity = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findByIdAndDelete(id);
+    const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
+
+    // Delete images from Cloudinary
+    if (product.coverPhoto) {
+      const publicId = product.coverPhoto.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`products/cover/${publicId}`);
+    }
+
+    if (product.images.length > 0) {
+      const deletePromises = product.images.map(image => {
+        const publicId = image.split('/').pop().split('.')[0];
+        return cloudinary.uploader.destroy(`products/images/${publicId}`);
+      });
+      await Promise.all(deletePromises);
+    }
+
+    await Product.findByIdAndDelete(id);
 
     res.json({
       message: 'Product deleted successfully'
@@ -206,43 +263,64 @@ export const searchProducts = async (req, res) => {
   }
 };
 
-// Update product with images
+// Update product with Cloudinary images
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
 
-    // Get uploaded files if any
-    if (req.files) {
-      if (req.files.coverPhoto) {
-        updateData.coverPhoto = req.files.coverPhoto[0].filename;
-      }
-      if (req.files.images) {
-        // If updating images, replace the entire array
-        updateData.images = req.files.images.map(file => file.filename);
-      }
-    }
-
-    const product = await Product.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    ).populate('brand category subCategory');
+    const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Add full URLs to response
-    const productWithUrls = {
-      ...product._doc,
-      coverPhoto: product.coverPhoto ? `${req.protocol}://${req.get('host')}/uploads/${product.coverPhoto}` : null,
-      images: product.images.map(image => `${req.protocol}://${req.get('host')}/uploads/${image}`)
-    };
+    // Handle cover photo upload
+    if (req.files?.coverPhoto) {
+      // Delete old cover photo from Cloudinary
+      if (product.coverPhoto) {
+        const oldPublicId = product.coverPhoto.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`products/cover/${oldPublicId}`);
+      }
+
+      const coverResult = await cloudinary.uploader.upload(req.files.coverPhoto[0].path, {
+        folder: 'products/cover'
+      });
+      updateData.coverPhoto = coverResult.secure_url;
+    }
+
+    // Handle additional images upload
+    if (req.files?.images) {
+      // Delete old images from Cloudinary if replacing all
+      if (updateData.replaceImages === 'true') {
+        const deletePromises = product.images.map(image => {
+          const publicId = image.split('/').pop().split('.')[0];
+          return cloudinary.uploader.destroy(`products/images/${publicId}`);
+        });
+        await Promise.all(deletePromises);
+        updateData.images = [];
+      }
+
+      const imageUploadPromises = req.files.images.map(file => 
+        cloudinary.uploader.upload(file.path, {
+          folder: 'products/images'
+        })
+      );
+      const imageResults = await Promise.all(imageUploadPromises);
+      const newImageUrls = imageResults.map(result => result.secure_url);
+      
+      updateData.images = [...product.images, ...newImageUrls];
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('brand category subCategory');
 
     res.json({
       message: 'Product updated successfully',
-      product: productWithUrls
+      product: updatedProduct
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -252,153 +330,92 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// Update only cover photo
-export const updateCoverPhoto = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!req.files?.coverPhoto) {
-      return res.status(400).json({ error: 'Cover photo is required' });
-    }
-
-    const coverPhoto = req.files.coverPhoto[0].filename;
-
-    const product = await Product.findByIdAndUpdate(
-      id,
-      { coverPhoto },
-      { new: true, runValidators: true }
-    ).populate('brand category subCategory');
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    // Add full URL to response
-    const productWithUrls = {
-      ...product._doc,
-      coverPhoto: `${req.protocol}://${req.get('host')}/uploads/${coverPhoto}`,
-      images: product.images.map(image => `${req.protocol}://${req.get('host')}/uploads/${image}`)
-    };
-
-    res.json({
-      message: 'Cover photo updated successfully',
-      product: productWithUrls
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Add more images to product
-export const addProductImages = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!req.files?.images) {
-      return res.status(400).json({ error: 'Images are required' });
-    }
-
-    const newImages = req.files.images.map(file => file.filename);
-
-    const product = await Product.findById(id);
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    // Add new images to existing ones
-    product.images = [...product.images, ...newImages];
-    await product.save();
-    await product.populate('brand category subCategory');
-
-    // Add full URLs to response
-    const productWithUrls = {
-      ...product._doc,
-      coverPhoto: product.coverPhoto ? `${req.protocol}://${req.get('host')}/uploads/${product.coverPhoto}` : null,
-      images: product.images.map(image => `${req.protocol}://${req.get('host')}/uploads/${image}`)
-    };
-
-    res.json({
-      message: 'Images added successfully',
-      product: productWithUrls
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Remove image from product
-export const removeProductImage = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { imageName } = req.body;
-
-    const product = await Product.findById(id);
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    // Remove the specific image
-    product.images = product.images.filter(img => img !== imageName);
-    await product.save();
-    await product.populate('brand category subCategory');
-
-    // Add full URLs to response
-    const productWithUrls = {
-      ...product._doc,
-      coverPhoto: product.coverPhoto ? `${req.protocol}://${req.get('host')}/uploads/${product.coverPhoto}` : null,
-      images: product.images.map(image => `${req.protocol}://${req.get('host')}/uploads/${image}`)
-    };
-
-    res.json({
-      message: 'Image removed successfully',
-      product: productWithUrls
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Upload product images (separate from add/update product)
+// Upload product images to Cloudinary
 export const uploadProductImages = async (req, res) => {
   try {
     const { id } = req.params;
+    const { coverPhoto, images, title, description } = req.body;
 
-    if (!req.files || (!req.files.coverPhoto && !req.files.images)) {
+    if (!coverPhoto && (!images || images.length === 0)) {
       return res.status(400).json({ error: 'No images provided' });
     }
 
     const product = await Product.findById(id);
-    
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Handle cover photo upload
-    if (req.files.coverPhoto) {
-      product.coverPhoto = req.files.coverPhoto[0].filename;
+    // Upload cover photo
+    if (coverPhoto) {
+      if (product.coverPhoto) {
+        const oldPublicId = product.coverPhoto.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`products/cover/${oldPublicId}`);
+      }
+
+      const coverResult = await cloudinary.uploader.upload(coverPhoto, {
+        folder: 'products/cover'
+      });
+      product.coverPhoto = coverResult.secure_url;
     }
 
-    // Handle additional images upload
-    if (req.files.images) {
-      const newImages = req.files.images.map(file => file.filename);
-      product.images = [...product.images, ...newImages];
+    // Upload additional images
+    if (images && images.length > 0) {
+      const imageUploadPromises = images.map(img =>
+        cloudinary.uploader.upload(img, { folder: 'products/images' })
+      );
+      const imageResults = await Promise.all(imageUploadPromises);
+      const newImageUrls = imageResults.map(result => result.secure_url);
+      product.images = [...(product.images || []), ...newImageUrls];
+    }
+
+    // Optional: update title/description
+    if (title) product.title = title;
+    if (description) product.description = description;
+
+    await product.save();
+    await product.populate('brand category subCategory');
+
+    res.json({
+      message: 'Images uploaded successfully',
+      product
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Remove specific image from product
+export const removeProductImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageUrl, isCoverPhoto } = req.body;
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    if (isCoverPhoto && product.coverPhoto === imageUrl) {
+      // Delete from Cloudinary
+      const publicId = imageUrl.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`products/cover/${publicId}`);
+      
+      product.coverPhoto = null;
+    } else {
+      // Delete from images array and Cloudinary
+      const publicId = imageUrl.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`products/images/${publicId}`);
+      
+      product.images = product.images.filter(img => img !== imageUrl);
     }
 
     await product.save();
     await product.populate('brand category subCategory');
 
-    // Add full URLs to response
-    const productWithUrls = {
-      ...product._doc,
-      coverPhoto: product.coverPhoto ? `${req.protocol}://${req.get('host')}/uploads/${product.coverPhoto}` : null,
-      images: product.images.map(image => `${req.protocol}://${req.get('host')}/uploads/${image}`)
-    };
-
     res.json({
-      message: 'Images uploaded successfully',
-      product: productWithUrls
+      message: 'Image removed successfully',
+      product
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

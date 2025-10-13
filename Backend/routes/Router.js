@@ -1,6 +1,9 @@
 import express from 'express';
 import { addUser, loginUser, getMe } from '../controllers/userController.js';
 import { protect, protectAdmin } from '../middlewares/auth.js';
+//import { uploadProductImages as uploadMiddleware } from '../middleware/upload.js';
+import { uploadProductImages as uploadMiddleware } from '../middlewares/upload.js';
+
 import { 
   addCategory, 
   addSubCategory, 
@@ -25,11 +28,10 @@ import {
   deleteProduct, 
   updateQuantity,
   searchProducts,
-  updateCoverPhoto,
-  addProductImages,
-  removeProductImage,
-  uploadProductImages
+  uploadProductImages,
+  removeProductImage
 } from '../controllers/productController.js';
+
 
 import { 
   upsertPage, 
@@ -80,18 +82,18 @@ router.post('/brand/add', protectAdmin, addBrand);
 router.put('/brand/:id', protectAdmin, updateBrand);
 router.delete('/brand/:id', protectAdmin, deleteBrand);
 
-router.get('/product', getProducts);
-router.get('/product/search', searchProducts);
-router.get('/product/:id', getProductById);
+// Public routes
+router.get('/products', getProducts);
+router.get('/products/search', searchProducts);
+router.get('/products/:id', getProductById);
 
 // Admin only routes
-router.post('/product/add', protectAdmin, uploadProductImages, addProduct);
-router.put('/product/:id', protectAdmin, uploadProductImages, updateProduct);
-router.patch('/product/:id/quantity', protectAdmin, updateQuantity);
-router.patch('/product/:id/cover-photo', protectAdmin, uploadProductImages, updateCoverPhoto);
-router.patch('/product/:id/add-images', protectAdmin, uploadProductImages, addProductImages);
-router.patch('/product/:id/remove-image', protectAdmin, removeProductImage);
-router.delete('/product/:id', protectAdmin, deleteProduct);
+router.post('/products/add', protectAdmin, uploadMiddleware, addProduct);
+router.put('/products/:id', protectAdmin, uploadMiddleware, updateProduct);
+router.patch('/products/:id/quantity', protectAdmin, updateQuantity);
+router.patch('/products/:id/upload-images', protectAdmin, uploadMiddleware, uploadProductImages);
+router.patch('/products/:id/remove-image', protectAdmin, removeProductImage);
+router.delete('/products/:id', protectAdmin, deleteProduct);
 
 router.get('/page', getPages);
 router.get('/page/slug/:slug', getPageBySlug);
@@ -109,14 +111,34 @@ router.get('/enquiry/:id', protectAdmin, getEnquiryById);
 router.put('/enquiry/:id/status', protectAdmin, updateEnquiryStatus);
 router.delete('/enquiry/:id', protectAdmin, deleteEnquiry);
 
-router.post('/', createContact);
+router.post('/contacts', createContact);
 
 // Admin routes
-router.get('/', protectAdmin, getContacts);
-router.get('/:id', protectAdmin, getContactById);
-router.put('/:id/status', protectAdmin, updateContactStatus);
-router.delete('/:id', protectAdmin, deleteContact);
+router.get('/contacts', protectAdmin, getContacts);
+router.get('/contacts/:id', protectAdmin, getContactById);
+router.put('/contacts/:id/status', protectAdmin, updateContactStatus);
+router.delete('/contacts/:id', protectAdmin, deleteContact);
 
+// Add this to your product routes temporarily
+router.post('/test-upload', uploadProductImages, async (req, res) => {
+  try {
+    console.log('Files:', req.files);
+    
+    if (!req.files || (!req.files.coverPhoto && !req.files.images)) {
+      return res.status(400).json({ error: 'No files received' });
+    }
+
+    res.json({
+      message: 'Files received successfully',
+      files: {
+        coverPhoto: req.files.coverPhoto ? req.files.coverPhoto[0] : null,
+        images: req.files.images ? req.files.images.map(f => f) : []
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 
 export default router;

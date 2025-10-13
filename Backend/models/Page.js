@@ -16,7 +16,8 @@ const pageSchema = new mongoose.Schema({
       'Request a Quote',
       'Refund & Cancellation Policy',
       'Privacy Policy',
-      'Terms and Condition'
+      'Terms and Condition',
+      'Services'
     ]
   },
   content: {
