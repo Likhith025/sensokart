@@ -1,4 +1,5 @@
 import Brand from '../models/Brand.js';
+import Product from '../models/Product.js'; // Import Product model
 
 // Add brand
 export const addBrand = async (req, res) => {
@@ -81,6 +82,20 @@ export const updateBrand = async (req, res) => {
 export const deleteBrand = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Check if brand is used in any products
+    const productsUsingBrand = await Product.find({ brand: id });
+    
+    if (productsUsingBrand.length > 0) {
+      const productNames = productsUsingBrand.slice(0, 3).map(p => p.name); // Show first 3 product names
+      return res.status(400).json({ 
+        error: `Cannot delete brand. It is being used by ${productsUsingBrand.length} product(s).`,
+        productCount: productsUsingBrand.length,
+        sampleProducts: productNames,
+        message: `This brand is associated with ${productsUsingBrand.length} product(s) including: ${productNames.join(', ')}${productsUsingBrand.length > 3 ? '...' : ''}`
+      });
+    }
+
     const brand = await Brand.findByIdAndDelete(id);
 
     if (!brand) {

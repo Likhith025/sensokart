@@ -21,7 +21,8 @@ const RefundCancellationPolicy = () => {
       try {
         setLoading(true);
         setError('');
-        const response = await fetch(`${API_BASE_URL}/page/slug/refund-cancellation-policy`);
+        // Use the exact slug from your API response
+        const response = await fetch(`${API_BASE_URL}/page/slug/refund-&-cancellation-policy`);
         if (response.headers.get('content-type')?.includes('application/json')) {
           const data = await response.json();
           if (!response.ok) {
@@ -31,18 +32,36 @@ const RefundCancellationPolicy = () => {
           const fetchedMetaTitle = data.metaTitle || '';
           const fetchedMetaDescription = data.metaDescription || '';
           setContent(fetchedContent);
-          setOriginalContent({ content: fetchedContent, metaTitle: fetchedMetaTitle, metaDescription: fetchedMetaDescription });
+          setOriginalContent({ 
+            content: fetchedContent, 
+            metaTitle: fetchedMetaTitle, 
+            metaDescription: fetchedMetaDescription 
+          });
           setMetaTitle(fetchedMetaTitle);
           setMetaDescription(fetchedMetaDescription);
         } else {
           throw new Error('Invalid response from server');
         }
       } catch (err) {
-        setContent('');
-        setOriginalContent({ content: '', metaTitle: '', metaDescription: '' });
-        setMetaTitle('');
-        setMetaDescription('');
-        setError(err.message || 'Page content not found. Admins can create it using the edit mode.');
+        // Set default content if API fails
+        const defaultContent = `Refund & Cancellation Policy:
+
+• Cancel orders within 24 hours of confirmation.
+• Refunds are processed within 7–10 business days.
+• Returns accepted only for defective or wrong items.
+• Customized or special orders cannot be cancelled once production begins.
+• Shipping charges are non-refundable for returns due to customer preference changes.
+• To request a refund or cancellation, please contact our customer support team with your order details.`;
+        
+        setContent(defaultContent);
+        setOriginalContent({ 
+          content: defaultContent, 
+          metaTitle: 'Refund & Cancellation Policy - Sensokart', 
+          metaDescription: 'Learn about our refund and cancellation policies for orders placed on Sensokart.' 
+        });
+        setMetaTitle('Refund & Cancellation Policy - Sensokart');
+        setMetaDescription('Learn about our refund and cancellation policies for orders placed on Sensokart.');
+        setError(err.message || 'Using default policy content.');
       } finally {
         setLoading(false);
       }
@@ -67,7 +86,7 @@ const RefundCancellationPolicy = () => {
   };
 
   const handleSave = async () => {
-    if (saving) return; // Prevent double clicks
+    if (saving) return;
     try {
       setSaving(true);
       setError('');
@@ -80,6 +99,7 @@ const RefundCancellationPolicy = () => {
         },
         body: JSON.stringify({
           title: 'Refund & Cancellation Policy',
+          slug: 'refund-&-cancellation-policy', // Ensure consistent slug
           content,
           metaTitle,
           metaDescription
@@ -93,8 +113,8 @@ const RefundCancellationPolicy = () => {
         // Update original to prevent revert on cancel
         setOriginalContent({ content, metaTitle, metaDescription });
         setIsEditMode(false);
-        setSuccess('Page saved successfully!');
-        setTimeout(() => setSuccess(''), 3000); // Auto-clear success message
+        setSuccess('Policy updated successfully!');
+        setTimeout(() => setSuccess(''), 3000);
       } else {
         throw new Error('Invalid response from server');
       }
@@ -108,7 +128,7 @@ const RefundCancellationPolicy = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-36 pb-16">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-5xl font-extrabold text-gray-900 sm:text-6xl tracking-tight">
@@ -121,7 +141,7 @@ const RefundCancellationPolicy = () => {
 
         {/* Status Messages */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-center">
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-center">
             {error}
           </div>
         )}
@@ -135,7 +155,7 @@ const RefundCancellationPolicy = () => {
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600"></div>
-            <p className="ml-4 text-lg text-gray-600">Loading content...</p>
+            <p className="ml-4 text-lg text-gray-600">Loading policy...</p>
           </div>
         ) : (
           <>
@@ -163,7 +183,7 @@ const RefundCancellationPolicy = () => {
                     onClick={handleEditToggle}
                     className="px-6 py-3 bg-blue-600 text-white font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg"
                   >
-                    Edit Content
+                    Edit Policy
                   </button>
                 )}
               </div>
@@ -174,12 +194,12 @@ const RefundCancellationPolicy = () => {
               {isEditMode && userRole === 'admin' ? (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-lg font-semibold text-gray-800 mb-2">Page Content</label>
+                    <label className="block text-lg font-semibold text-gray-800 mb-2">Policy Content</label>
                     <textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 resize-vertical"
-                      rows="20"
+                      className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 resize-vertical font-mono text-sm"
+                      rows="15"
                       placeholder="Enter the refund and cancellation policy content here..."
                     />
                   </div>
@@ -206,11 +226,9 @@ const RefundCancellationPolicy = () => {
                 </div>
               ) : (
                 <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed">
-                  {content ? (
-                    <pre className="whitespace-pre-wrap font-sans">{content}</pre>
-                  ) : (
-                    <p className="text-gray-500 italic">No content available for this page.</p>
-                  )}
+                  <pre className="whitespace-pre-wrap font-sans text-gray-800 text-base leading-7">
+                    {content}
+                  </pre>
                 </div>
               )}
             </div>

@@ -1,11 +1,20 @@
 import Product from '../models/Product.js';
+import Brand from '../models/Brand.js';
+import Category from '../models/Category.js';
+import SubCategory from '../models/SubCategory.js';
 import cloudinary from '../config/cloudinary.js';
 
 // --- Helper: Cloudinary upload from memory buffer ---
 const streamUpload = (fileBuffer, folder) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder },
+      { 
+        folder,
+        transformation: [
+          { width: 800, height: 800, crop: "limit", quality: "auto" },
+          { format: 'webp' }
+        ]
+      },
       (error, result) => {
         if (error) reject(error);
         else resolve(result);
@@ -20,7 +29,6 @@ const safeParseJSON = (value) => {
   if (!value) return undefined;
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value;
-    // handle double-stringified JSON
     if (typeof parsed === 'string') return JSON.parse(parsed);
     return parsed;
   } catch {
@@ -28,7 +36,7 @@ const safeParseJSON = (value) => {
   }
 };
 
-// --- Main Controller ---
+// --- Enhanced Product Controller ---
 export const addProduct = async (req, res) => {
   try {
     const {
@@ -42,7 +50,11 @@ export const addProduct = async (req, res) => {
       quantity,
       features,
       specifications,
-      sku
+      sku,
+      weight,
+      manufacturer,
+      modelNo,
+      measuringParameters
     } = req.body;
 
     console.log('📦 Form data received:', req.body);
@@ -90,8 +102,12 @@ export const addProduct = async (req, res) => {
       coverPhoto: coverPhotoUrl,
       images: imageUrls,
       features: featuresArray,
-      specifications: specsObject, // ✅ fixed — Map now gets correct object
-      sku
+      specifications: specsObject,
+      sku,
+      weight: weight || '1 kg',
+      manufacturer,
+      modelNo,
+      measuringParameters
     });
 
     await product.save();
@@ -115,44 +131,265 @@ export const addProduct = async (req, res) => {
   }
 };
 
-// Get all products
+// In your products controller
 export const getProducts = async (req, res) => {
   try {
-    const { category, brand, minPrice, maxPrice, featured } = req.query;
+    const { 
+      brand, 
+      category, 
+      subCategory,
+      minPrice, 
+      maxPrice,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      page = 1,
+      limit = 50
+    } = req.query;
+    
+    console.log('📦 Filter parameters received:', req.query);
     
     let filter = { isActive: true };
+    const sortOptions = {};
     
-    if (category) filter.category = category;
-    if (brand) filter.brand = brand;
-    if (featured) filter.isFeatured = featured === 'true';
+    // Build filter object with proper ID matching
+    if (brand && brand !== '') {
+      console.log('Filtering by brand ID:', brand);
+      filter.brand = brand;
+    }
     
+    if (category && category !== '') {
+      console.log('Filtering by category ID:', category);
+      filter.category = category;
+    }
+    
+    if (subCategory && subCategory !== '') {
+      console.log('Filtering by subCategory ID:', subCategory);
+      filter.subCategory = subCategory;
+    }
+    
+    // Price filtering - handle both price and salePrice
     if (minPrice || maxPrice) {
-      filter.$or = [
-        { salePrice: {} },
-        { price: {} }
-      ];
+      filter.$or = [];
       
-      if (minPrice) {
-        filter.$or[0].salePrice.$gte = parseFloat(minPrice);
-        filter.$or[1].price.$gte = parseFloat(minPrice);
+      const priceConditions = [];
+      
+      // For products with salePrice
+      if (minPrice && maxPrice) {
+        priceConditions.push({
+          salePrice: { 
+            $exists: true, 
+            $ne: null,
+            $gte: parseFloat(minPrice), 
+            $lte: parseFloat(maxPrice) 
+          }
+        });
+      } else if (minPrice) {
+        priceConditions.push({
+          salePrice: { 
+            $exists: true, 
+            $ne: null,
+            $gte: parseFloat(minPrice) 
+          }
+        });
+      } else if (maxPrice) {
+        priceConditions.push({
+          salePrice: { 
+            $exists: true, 
+            $ne: null,
+            $lte: parseFloat(maxPrice) 
+          }
+        });
       }
-      if (maxPrice) {
-        filter.$or[0].salePrice.$lte = parseFloat(maxPrice);
-        filter.$or[1].price.$lte = parseFloat(maxPrice);
+      
+      // For products without salePrice (use regular price)
+      if (minPrice && maxPrice) {
+        priceConditions.push({
+          $and: [
+            { salePrice: { $exists: false } },
+            { price: { $gte: parseFloat(minPrice), $lte: parseFloat(maxPrice) } }
+          ]
+        });
+      } else if (minPrice) {
+        priceConditions.push({
+          $and: [
+            { salePrice: { $exists: false } },
+            { price: { $gte: parseFloat(minPrice) } }
+          ]
+        });
+      } else if (maxPrice) {
+        priceConditions.push({
+          $and: [
+            { salePrice: { $exists: false } },
+            { price: { $lte: parseFloat(maxPrice) } }
+          ]
+        });
+      }
+      
+      if (priceConditions.length > 0) {
+        filter.$or = priceConditions;
       }
     }
 
+    // Sort options
+    if (sortBy === 'price') {
+      sortOptions.price = sortOrder === 'desc' ? -1 : 1;
+    } else if (sortBy === 'name') {
+      sortOptions.name = sortOrder === 'desc' ? -1 : 1;
+    } else {
+      sortOptions.createdAt = sortOrder === 'desc' ? -1 : 1;
+    }
+
+    const skip = (page - 1) * limit;
+    
+    console.log('🔍 Final filter:', JSON.stringify(filter, null, 2));
+    
     const products = await Product.find(filter)
       .populate('brand category subCategory')
-      .sort({ createdAt: -1 });
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parseInt(limit));
 
-    res.json(products);
+    const total = await Product.countDocuments(filter);
+
+    console.log(`✅ Found ${products.length} products out of ${total} total`);
+    
+    res.json({
+      products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalProducts: total,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error in getProducts:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get products by category with filters
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { categorySlug } = req.params;
+    const { brand, minPrice, maxPrice, sortBy, page = 1, limit = 12 } = req.query;
+    
+    // Find category by slug or ID
+    const category = await Category.findOne({
+      $or: [
+        { _id: categorySlug },
+        { slug: categorySlug }
+      ]
+    });
+    
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
+    let filter = { 
+      isActive: true, 
+      category: category._id 
+    };
+    
+    if (brand) filter.brand = brand;
+    
+    // Price filtering
+    if (minPrice || maxPrice) {
+      filter.$or = [
+        { 
+          $and: [
+            { salePrice: { $exists: true, $ne: null } },
+            { salePrice: { $gte: parseFloat(minPrice || 0), $lte: parseFloat(maxPrice || 999999) } }
+          ]
+        },
+        { 
+          $and: [
+            { salePrice: { $exists: false } },
+            { price: { $gte: parseFloat(minPrice || 0), $lte: parseFloat(maxPrice || 999999) } }
+          ]
+        }
+      ];
+    }
+    
+    const sortOptions = {};
+    if (sortBy === 'price_asc') sortOptions.price = 1;
+    else if (sortBy === 'price_desc') sortOptions.price = -1;
+    else if (sortBy === 'name') sortOptions.name = 1;
+    else sortOptions.createdAt = -1;
+    
+    const skip = (page - 1) * limit;
+    
+    const products = await Product.find(filter)
+      .populate('brand category subCategory')
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    const total = await Product.countDocuments(filter);
+    const brands = await Product.distinct('brand', filter);
+    const brandDetails = await Brand.find({ _id: { $in: brands } });
+    
+    // Get price range for filters
+    const priceStats = await Product.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' }
+        }
+      }
+    ]);
+    
+    res.json({
+      products,
+      category,
+      filters: {
+        brands: brandDetails,
+        priceRange: priceStats[0] || { minPrice: 0, maxPrice: 0 }
+      },
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalProducts: total
+      }
+    });
+    
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Get product by ID
+// Get related products
+export const getRelatedProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findById(id).populate('category brand');
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    const relatedProducts = await Product.find({
+      _id: { $ne: id },
+      $or: [
+        { category: product.category },
+        { brand: product.brand }
+      ],
+      isActive: true
+    })
+    .populate('brand category')
+    .limit(8)
+    .sort({ createdAt: -1 });
+    
+    res.json(relatedProducts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get product by ID - Enhanced with related data
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -162,6 +399,9 @@ export const getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
+
+    // Increment view count (optional)
+    await Product.findByIdAndUpdate(id, { $inc: { 'ratings.count': 1 } });
 
     res.json(product);
   } catch (error) {
@@ -220,19 +460,21 @@ export const deleteProduct = async (req, res) => {
     }
 
     // Delete images from Cloudinary
+    const deletePromises = [];
+    
     if (product.coverPhoto) {
       const publicId = product.coverPhoto.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(`products/cover/${publicId}`);
+      deletePromises.push(cloudinary.uploader.destroy(`products/cover/${publicId}`));
     }
 
     if (product.images.length > 0) {
-      const deletePromises = product.images.map(image => {
+      product.images.forEach(image => {
         const publicId = image.split('/').pop().split('.')[0];
-        return cloudinary.uploader.destroy(`products/images/${publicId}`);
+        deletePromises.push(cloudinary.uploader.destroy(`products/images/${publicId}`));
       });
-      await Promise.all(deletePromises);
     }
 
+    await Promise.all(deletePromises);
     await Product.findByIdAndDelete(id);
 
     res.json({
@@ -243,27 +485,75 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-// Search products
+// Search products - Enhanced
 export const searchProducts = async (req, res) => {
   try {
-    const { q } = req.query;
+    const { q, category, brand, minPrice, maxPrice, page = 1, limit = 12 } = req.query;
     
-    const products = await Product.find({
+    if (!q) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+    
+    let filter = {
       isActive: true,
       $or: [
         { name: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
-        { sku: { $regex: q, $options: 'i' } }
+        { sku: { $regex: q, $options: 'i' } },
+        { 'brand.name': { $regex: q, $options: 'i' } },
+        { 'category.name': { $regex: q, $options: 'i' } }
       ]
-    }).populate('brand category subCategory');
-
-    res.json(products);
+    };
+    
+    if (category) filter.category = category;
+    if (brand) filter.brand = brand;
+    
+    // Price filtering
+    if (minPrice || maxPrice) {
+      filter.$and = filter.$and || [];
+      filter.$and.push({
+        $or: [
+          { 
+            salePrice: { 
+              $gte: parseFloat(minPrice || 0), 
+              $lte: parseFloat(maxPrice || 999999) 
+            } 
+          },
+          { 
+            price: { 
+              $gte: parseFloat(minPrice || 0), 
+              $lte: parseFloat(maxPrice || 999999) 
+            } 
+          }
+        ]
+      });
+    }
+    
+    const skip = (page - 1) * limit;
+    
+    const products = await Product.find(filter)
+      .populate('brand category subCategory')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+    
+    const total = await Product.countDocuments(filter);
+    
+    res.json({
+      products,
+      searchQuery: q,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalProducts: total
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Update product with Cloudinary images
+// Update product with Cloudinary images - Enhanced
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -283,33 +573,46 @@ export const updateProduct = async (req, res) => {
         await cloudinary.uploader.destroy(`products/cover/${oldPublicId}`);
       }
 
-      const coverResult = await cloudinary.uploader.upload(req.files.coverPhoto[0].path, {
-        folder: 'products/cover'
-      });
+      const coverResult = await streamUpload(req.files.coverPhoto[0].buffer, 'products/cover');
       updateData.coverPhoto = coverResult.secure_url;
     }
 
     // Handle additional images upload
     if (req.files?.images) {
-      // Delete old images from Cloudinary if replacing all
-      if (updateData.replaceImages === 'true') {
-        const deletePromises = product.images.map(image => {
-          const publicId = image.split('/').pop().split('.')[0];
-          return cloudinary.uploader.destroy(`products/images/${publicId}`);
-        });
-        await Promise.all(deletePromises);
-        updateData.images = [];
-      }
-
       const imageUploadPromises = req.files.images.map(file => 
-        cloudinary.uploader.upload(file.path, {
-          folder: 'products/images'
-        })
+        streamUpload(file.buffer, 'products/images')
       );
       const imageResults = await Promise.all(imageUploadPromises);
       const newImageUrls = imageResults.map(result => result.secure_url);
       
       updateData.images = [...product.images, ...newImageUrls];
+    }
+
+    // Handle image removal
+    if (updateData.imagesToRemove) {
+      const imagesToRemove = Array.isArray(updateData.imagesToRemove) 
+        ? updateData.imagesToRemove 
+        : [updateData.imagesToRemove];
+      
+      // Delete from Cloudinary
+      const deletePromises = imagesToRemove.map(imageUrl => {
+        const publicId = imageUrl.split('/').pop().split('.')[0];
+        return cloudinary.uploader.destroy(`products/images/${publicId}`);
+      });
+      
+      await Promise.all(deletePromises);
+      
+      // Remove from images array
+      updateData.images = product.images.filter(img => !imagesToRemove.includes(img));
+      delete updateData.imagesToRemove;
+    }
+
+    // Handle cover photo removal
+    if (updateData.removeCoverPhoto === 'true' && product.coverPhoto) {
+      const publicId = product.coverPhoto.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`products/cover/${publicId}`);
+      updateData.coverPhoto = null;
+      delete updateData.removeCoverPhoto;
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -330,92 +633,40 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// Upload product images to Cloudinary
-export const uploadProductImages = async (req, res) => {
+// Get products by brand
+export const getProductsByBrand = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { coverPhoto, images, title, description } = req.body;
-
-    if (!coverPhoto && (!images || images.length === 0)) {
-      return res.status(400).json({ error: 'No images provided' });
+    const { brandId } = req.params;
+    const { page = 1, limit = 12, sortBy = 'createdAt' } = req.query;
+    
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ error: 'Brand not found' });
     }
-
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    // Upload cover photo
-    if (coverPhoto) {
-      if (product.coverPhoto) {
-        const oldPublicId = product.coverPhoto.split('/').pop().split('.')[0];
-        await cloudinary.uploader.destroy(`products/cover/${oldPublicId}`);
+    
+    const skip = (page - 1) * limit;
+    const sortOptions = {};
+    sortOptions[sortBy] = -1;
+    
+    const products = await Product.find({ 
+      brand: brandId, 
+      isActive: true 
+    })
+    .populate('brand category subCategory')
+    .sort(sortOptions)
+    .skip(skip)
+    .limit(parseInt(limit));
+    
+    const total = await Product.countDocuments({ brand: brandId, isActive: true });
+    
+    res.json({
+      products,
+      brand,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalProducts: total
       }
-
-      const coverResult = await cloudinary.uploader.upload(coverPhoto, {
-        folder: 'products/cover'
-      });
-      product.coverPhoto = coverResult.secure_url;
-    }
-
-    // Upload additional images
-    if (images && images.length > 0) {
-      const imageUploadPromises = images.map(img =>
-        cloudinary.uploader.upload(img, { folder: 'products/images' })
-      );
-      const imageResults = await Promise.all(imageUploadPromises);
-      const newImageUrls = imageResults.map(result => result.secure_url);
-      product.images = [...(product.images || []), ...newImageUrls];
-    }
-
-    // Optional: update title/description
-    if (title) product.title = title;
-    if (description) product.description = description;
-
-    await product.save();
-    await product.populate('brand category subCategory');
-
-    res.json({
-      message: 'Images uploaded successfully',
-      product
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Remove specific image from product
-export const removeProductImage = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { imageUrl, isCoverPhoto } = req.body;
-
-    const product = await Product.findById(id);
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    if (isCoverPhoto && product.coverPhoto === imageUrl) {
-      // Delete from Cloudinary
-      const publicId = imageUrl.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(`products/cover/${publicId}`);
-      
-      product.coverPhoto = null;
-    } else {
-      // Delete from images array and Cloudinary
-      const publicId = imageUrl.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(`products/images/${publicId}`);
-      
-      product.images = product.images.filter(img => img !== imageUrl);
-    }
-
-    await product.save();
-    await product.populate('brand category subCategory');
-
-    res.json({
-      message: 'Image removed successfully',
-      product
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

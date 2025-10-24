@@ -287,7 +287,10 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+      
+      {/* Main Content with proper spacing */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16"> {/* Changed pt-24 to pt-32 */}
+        
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-5xl font-extrabold text-gray-900 sm:text-6xl tracking-tight">

@@ -1,7 +1,6 @@
 import express from 'express';
 import { addUser, loginUser, getMe } from '../controllers/userController.js';
 import { protect, protectAdmin } from '../middlewares/auth.js';
-//import { uploadProductImages as uploadMiddleware } from '../middleware/upload.js';
 import { uploadProductImages as uploadMiddleware } from '../middlewares/upload.js';
 
 import { 
@@ -9,7 +8,12 @@ import {
   addSubCategory, 
   getCategories, 
   getSubCategoriesByCategory, 
-  getCategoriesWithSubcategories 
+  getCategoriesWithSubcategories,
+  getSubCategories,
+  updateCategory,
+  deleteCategory,
+  updateSubCategory,
+  deleteSubCategory
 } from '../controllers/categoryController.js';
 
 import { 
@@ -28,8 +32,10 @@ import {
   deleteProduct, 
   updateQuantity,
   searchProducts,
-  uploadProductImages,
-  removeProductImage
+  getProductsByCategory,
+  getProductsByBrand,
+  getRelatedProducts,
+
 } from '../controllers/productController.js';
 
 
@@ -66,13 +72,22 @@ router.post('/user/register', addUser);
 router.post('/login', loginUser);
 router.get('/me', protectAdmin, getMe);
 
+// Public routes
 router.get('/category', getCategories);
-router.get('/category/with-subcategories',getCategoriesWithSubcategories);
-router.get('/category/:categoryId/subcategories',getSubCategoriesByCategory);
+router.get('/subcategory', getSubCategories);
+router.get('/category/with-subcategories', getCategoriesWithSubcategories);
+router.get('/category/:categoryId/subcategories', getSubCategoriesByCategory);
 
 // Admin only routes
 router.post('/category/add', protectAdmin, addCategory);
+router.put('/category/:id', protectAdmin, updateCategory);
+router.delete('/category/:id', protectAdmin, deleteCategory);
+
 router.post('/subcategory/add', protectAdmin, addSubCategory);
+router.put('/subcategory/:id', protectAdmin, updateSubCategory);
+router.delete('/subcategory/:id', protectAdmin, deleteSubCategory);
+router.get('/brand', getBrands);
+router.get('/brand/:id', getBrandById);
 
 router.get('/brand', getBrands);
 router.get('/brand/:id', getBrandById);
@@ -82,17 +97,17 @@ router.post('/brand/add', protectAdmin, addBrand);
 router.put('/brand/:id', protectAdmin, updateBrand);
 router.delete('/brand/:id', protectAdmin, deleteBrand);
 
-// Public routes
 router.get('/products', getProducts);
 router.get('/products/search', searchProducts);
+router.get('/products/category/:categorySlug', getProductsByCategory);
+router.get('/products/brand/:brandId', getProductsByBrand);
+router.get('/products/:id/related', getRelatedProducts);
 router.get('/products/:id', getProductById);
 
 // Admin only routes
 router.post('/products/add', protectAdmin, uploadMiddleware, addProduct);
 router.put('/products/:id', protectAdmin, uploadMiddleware, updateProduct);
 router.patch('/products/:id/quantity', protectAdmin, updateQuantity);
-router.patch('/products/:id/upload-images', protectAdmin, uploadMiddleware, uploadProductImages);
-router.patch('/products/:id/remove-image', protectAdmin, removeProductImage);
 router.delete('/products/:id', protectAdmin, deleteProduct);
 
 router.get('/page', getPages);
@@ -120,25 +135,6 @@ router.put('/contacts/:id/status', protectAdmin, updateContactStatus);
 router.delete('/contacts/:id', protectAdmin, deleteContact);
 
 // Add this to your product routes temporarily
-router.post('/test-upload', uploadProductImages, async (req, res) => {
-  try {
-    console.log('Files:', req.files);
-    
-    if (!req.files || (!req.files.coverPhoto && !req.files.images)) {
-      return res.status(400).json({ error: 'No files received' });
-    }
-
-    res.json({
-      message: 'Files received successfully',
-      files: {
-        coverPhoto: req.files.coverPhoto ? req.files.coverPhoto[0] : null,
-        images: req.files.images ? req.files.images.map(f => f) : []
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 
 export default router;

@@ -1,8 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const location = useLocation();
 
   const footerLinks = [
     { name: 'Privacy Policy', path: '/privacy-policy' },
@@ -15,8 +16,17 @@ const Footer = () => {
     { name: 'Admin', path:'/login'}
   ];
 
+  // Scroll to top when route changes
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  const handleLinkClick = () => {
+    window.scrollTo(0, 0);
+  };
+
   return (
-    <footer className="bg-gray-900 text-gray-300 F">
+    <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Company Info */}
@@ -37,6 +47,7 @@ const Footer = () => {
                 <li key={link.name}>
                   <Link
                     to={link.path}
+                    onClick={handleLinkClick}
                     className="text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
                   >
                     {link.name}

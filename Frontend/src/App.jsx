@@ -4,7 +4,6 @@ import { Routes, Route } from 'react-router-dom';
 import AboutUs from './pages/AboutUs';
 import Login from './pages/Login';
 import Footer from './components/Footer';
-import PrivacyPolicy from './pages/PrivacyPolicy';
 import RefundCancellationPolicy from './pages/RefundCancellationPolicy';
 import TermsConditions from './pages/TermsConditions';
 import Careers from './pages/Carrers';
@@ -14,6 +13,9 @@ import Cart from './pages/Cart';
 import ProductDetail from './pages/ProductDetail';
 import Contact from './pages/Contact';
 import Product from './pages/Product';
+import Dropdowns from './pages/Dropdowns';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Brands from './pages/Brands';
 
 const App = () => {
   return (
@@ -22,7 +24,6 @@ const App = () => {
       <Routes>
         <Route path="/about" element={<AboutUs/>} />
         <Route path="/login" element={<Login/>} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
         <Route path="/refund-policy" element={<RefundCancellationPolicy/>} />
         <Route path="/terms-and-conditions" element={<TermsConditions/>} />
         <Route path="/careers" element={<Careers/>} />
@@ -32,6 +33,10 @@ const App = () => {
         <Route path="/product/:id" element={<ProductDetail/>} />
         <Route path="/contact" element={<Contact/>} />
         <Route path="/products" element={<Product/>} />
+                <Route path="/shop" element={<Product/>} />
+        <Route path="/dropdowns" element={<Dropdowns/>} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
+        <Route path="/brands" element={<Brands/>} />
       </Routes>
       <Footer/>
     </div>

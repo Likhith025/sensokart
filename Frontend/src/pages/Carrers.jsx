@@ -108,7 +108,10 @@ const Careers = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+      
+      {/* Main Content with proper spacing */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16"> {/* Changed pt-24 to pt-32 */}
+        
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-5xl font-extrabold text-gray-900 sm:text-6xl tracking-tight">
@@ -147,13 +150,13 @@ const Careers = () => {
                     <button
                       onClick={handleSave}
                       disabled={saving}
-                      className={`px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 cursor-pointer ${saving ? 'opacity-50 cursor-not-allowed' : 'shadow-md hover:shadow-lg'}`}
+                      className={`px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 cursor-pointer ${saving ? 'opacity-50 cursor-not-allowed' : 'shadow-md hover:shadow-lg hover:scale-105'}`}
                     >
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button
                       onClick={handleEditToggle}
-                      className="px-6 py-3 bg-gray-500 text-white font-medium rounded-full hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg"
+                      className="px-6 py-3 bg-gray-500 text-white font-medium rounded-full hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:scale-105"
                     >
                       Cancel
                     </button>
@@ -161,7 +164,7 @@ const Careers = () => {
                 ) : (
                   <button
                     onClick={handleEditToggle}
-                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg"
+                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:scale-105"
                   >
                     Edit Content
                   </button>
