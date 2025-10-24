@@ -565,45 +565,101 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    /* 🧹 CLEANUP: FEATURES & SPECIFICATIONS BEFORE SAVING */
+
+    // --- Fix FEATURES ---
+    if (updateData.features) {
+      try {
+        if (typeof updateData.features === 'string') {
+          const parsed = JSON.parse(updateData.features);
+          if (Array.isArray(parsed)) {
+            updateData.features = parsed.filter(
+              f => typeof f === 'string' && f.trim() !== ''
+            );
+          } else if (typeof parsed === 'string') {
+            updateData.features = parsed
+              .split(',')
+              .map(f => f.trim())
+              .filter(Boolean);
+          } else {
+            updateData.features = [];
+          }
+        } else if (Array.isArray(updateData.features)) {
+          // Flatten and clean duplicates
+          updateData.features = [
+            ...new Set(
+              updateData.features
+                .flat(Infinity)
+                .map(f => (typeof f === 'string' ? f.trim() : ''))
+                .filter(Boolean)
+            )
+          ];
+        }
+      } catch {
+        updateData.features = [];
+      }
+    }
+
+    // --- Fix SPECIFICATIONS ---
+    if (updateData.specifications) {
+      try {
+        if (typeof updateData.specifications === 'string') {
+          updateData.specifications = JSON.parse(updateData.specifications);
+        }
+        if (
+          typeof updateData.specifications !== 'object' ||
+          Array.isArray(updateData.specifications)
+        ) {
+          updateData.specifications = {};
+        }
+      } catch {
+        updateData.specifications = {};
+      }
+    }
+
+    /* ---------------------------------------------------- */
+
     // Handle cover photo upload
     if (req.files?.coverPhoto) {
-      // Delete old cover photo from Cloudinary
       if (product.coverPhoto) {
         const oldPublicId = product.coverPhoto.split('/').pop().split('.')[0];
         await cloudinary.uploader.destroy(`products/cover/${oldPublicId}`);
       }
 
-      const coverResult = await streamUpload(req.files.coverPhoto[0].buffer, 'products/cover');
+      const coverResult = await streamUpload(
+        req.files.coverPhoto[0].buffer,
+        'products/cover'
+      );
       updateData.coverPhoto = coverResult.secure_url;
     }
 
     // Handle additional images upload
     if (req.files?.images) {
-      const imageUploadPromises = req.files.images.map(file => 
+      const imageUploadPromises = req.files.images.map(file =>
         streamUpload(file.buffer, 'products/images')
       );
       const imageResults = await Promise.all(imageUploadPromises);
       const newImageUrls = imageResults.map(result => result.secure_url);
-      
+
       updateData.images = [...product.images, ...newImageUrls];
     }
 
     // Handle image removal
     if (updateData.imagesToRemove) {
-      const imagesToRemove = Array.isArray(updateData.imagesToRemove) 
-        ? updateData.imagesToRemove 
+      const imagesToRemove = Array.isArray(updateData.imagesToRemove)
+        ? updateData.imagesToRemove
         : [updateData.imagesToRemove];
-      
-      // Delete from Cloudinary
+
       const deletePromises = imagesToRemove.map(imageUrl => {
         const publicId = imageUrl.split('/').pop().split('.')[0];
         return cloudinary.uploader.destroy(`products/images/${publicId}`);
       });
-      
+
       await Promise.all(deletePromises);
-      
-      // Remove from images array
-      updateData.images = product.images.filter(img => !imagesToRemove.includes(img));
+
+      updateData.images = product.images.filter(
+        img => !imagesToRemove.includes(img)
+      );
       delete updateData.imagesToRemove;
     }
 
@@ -615,11 +671,11 @@ export const updateProduct = async (req, res) => {
       delete updateData.removeCoverPhoto;
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    ).populate('brand category subCategory');
+    // ✅ Finally update product
+    const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true
+    }).populate('brand category subCategory');
 
     res.json({
       message: 'Product updated successfully',

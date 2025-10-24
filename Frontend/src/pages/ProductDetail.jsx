@@ -17,6 +17,8 @@ const ProductDetail = () => {
   const [imageZoom, setImageZoom] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [quoteSuccess, setQuoteSuccess] = useState('');
+  const [quoteError, setQuoteError] = useState('');
 
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
   const token = Cookies.get('authToken');
@@ -85,9 +87,9 @@ const ProductDetail = () => {
         }
 
         const data = await response.json();
-        console.log('Raw product data:', data); // Debug log
-        console.log('Specifications type:', typeof data.specifications); // Debug type
-        console.log('Specifications content:', data.specifications); // Debug content
+        console.log('Raw product data:', JSON.stringify(data, null, 2));
+        console.log('Specifications type:', typeof data.specifications);
+        console.log('Specifications content:', JSON.stringify(data.specifications, null, 2));
         if (!response.ok) {
           throw new Error(data.error || 'Failed to fetch product');
         }
@@ -118,40 +120,49 @@ const ProductDetail = () => {
         try {
           const specsData = data.specifications;
           if (!specsData) {
-            specs = [{ key: '', value: '' }]; // Fallback for null/undefined
+            console.warn('Specifications is null or undefined, using default');
+            specs = [{ key: '', value: '' }];
           } else if (typeof specsData === 'string') {
             console.warn('Specifications is a string, attempting to parse:', specsData);
             try {
               const parsedSpecs = JSON.parse(specsData);
-              if (typeof parsedSpecs === 'object' && !Array.isArray(parsedSpecs)) {
+              if (typeof parsedSpecs === 'object' && !Array.isArray(parsedSpecs) && parsedSpecs !== null) {
                 specs = Object.entries(parsedSpecs)
-                  .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null)
-                  .map(([key, value]) => ({ key, value }));
+                  .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null && value !== '')
+                  .map(([key, value]) => ({ key, value: String(value) }));
               } else if (Array.isArray(parsedSpecs)) {
                 specs = parsedSpecs
-                  .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null)
-                  .map(item => ({ key: item.key, value: item.value }));
+                  .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null && item.value !== '')
+                  .map(item => ({ key: item.key, value: String(item.value) }));
+              } else {
+                console.warn('Parsed specifications is neither an object nor an array:', parsedSpecs);
+                specs = [{ key: '', value: '' }];
               }
             } catch (parseErr) {
-              console.error('Failed to parse specifications string:', parseErr);
+              console.error('Failed to parse specifications string:', parseErr, 'Raw string:', specsData);
               specs = [{ key: '', value: '' }];
             }
-          } else if (typeof specsData === 'object' && !Array.isArray(specsData)) {
+          } else if (typeof specsData === 'object' && !Array.isArray(specsData) && specsData !== null) {
             specs = Object.entries(specsData)
-              .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null)
-              .map(([key, value]) => ({ key, value }));
+              .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null && value !== '')
+              .map(([key, value]) => ({ key, value: String(value) }));
           } else if (Array.isArray(specsData)) {
             specs = specsData
-              .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null)
-              .map(item => ({ key: item.key, value: item.value }));
+              .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null && item.value !== '')
+              .map(item => ({ key: item.key, value: String(item.value) }));
+          } else {
+            console.warn('Specifications is an unexpected type:', typeof specsData, specsData);
+            specs = [{ key: '', value: '' }];
           }
           if (!specs.length) {
+            console.warn('No valid specifications found, using default');
             specs = [{ key: '', value: '' }];
           }
         } catch (specErr) {
           console.error('Error parsing specifications:', specErr);
           specs = [{ key: '', value: '' }];
         }
+        console.log('Processed specifications for editSpecsFields:', specs);
         setEditSpecsFields(specs);
 
         // Fetch related products
@@ -255,6 +266,51 @@ const ProductDetail = () => {
     return item ? item.quantity : 0;
   };
 
+  // Request Quote functionality
+  const handleRequestQuote = async () => {
+    if (!token) {
+      setQuoteError('Please log in to request a quote.');
+      setTimeout(() => setQuoteError(''), 3000);
+      return;
+    }
+
+    try {
+      setQuoteError('');
+      setQuoteSuccess('');
+
+      const response = await fetch(`${API_BASE_URL}/quotes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          productId: id,
+          quantity,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = 'Failed to request quote';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (parseError) {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      setQuoteSuccess('Quote requested successfully!');
+      setTimeout(() => setQuoteSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error requesting quote:', err);
+      setQuoteError(err.message || 'Failed to request quote');
+      setTimeout(() => setQuoteError(''), 3000);
+    }
+  };
+
   // Image zoom functionality
   const handleImageMouseMove = (e) => {
     if (!imageZoom) return;
@@ -341,7 +397,7 @@ const ProductDetail = () => {
       // Add specifications
       const specifications = {};
       editSpecsFields.forEach(field => {
-        if (field.key?.trim() && field.value !== undefined && field.value !== null) {
+        if (field.key?.trim() && field.value !== undefined && field.value !== null && field.value.trim()) {
           specifications[field.key.trim()] = field.value.trim();
         }
       });
@@ -411,40 +467,56 @@ const ProductDetail = () => {
   const getSpecificationsEntries = () => {
     try {
       const specs = product?.specifications;
+      console.log('getSpecificationsEntries - Raw specifications:', JSON.stringify(specs, null, 2));
+      console.log('getSpecificationsEntries - Type:', typeof specs);
+
       if (!specs) {
-        return []; // Return empty array if specs is null or undefined
+        console.warn('getSpecificationsEntries - Specifications is null or undefined');
+        return [];
       }
 
       if (typeof specs === 'string') {
-        console.warn('Specifications is a string, attempting to parse:', specs);
+        console.warn('getSpecificationsEntries - Specifications is a string, attempting to parse:', specs);
         try {
           const parsedSpecs = JSON.parse(specs);
-          if (typeof parsedSpecs === 'object' && !Array.isArray(parsedSpecs)) {
-            return Object.entries(parsedSpecs)
-              .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null)
-              .map(([key, value]) => [key, value]);
+          if (typeof parsedSpecs === 'object' && !Array.isArray(parsedSpecs) && parsedSpecs !== null) {
+            const entries = Object.entries(parsedSpecs)
+              .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null && value !== '')
+              .map(([key, value]) => [key, String(value)]);
+            console.log('getSpecificationsEntries - Parsed object entries:', entries);
+            return entries;
           } else if (Array.isArray(parsedSpecs)) {
-            return parsedSpecs
-              .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null)
-              .map(item => [item.key, item.value]);
+            const entries = parsedSpecs
+              .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null && item.value !== '')
+              .map(item => [item.key, String(item.value)]);
+            console.log('getSpecificationsEntries - Parsed array entries:', entries);
+            return entries;
+          } else {
+            console.warn('getSpecificationsEntries - Parsed specifications is neither an object nor an array:', parsedSpecs);
+            return [];
           }
         } catch (parseErr) {
-          console.error('Failed to parse specifications string:', parseErr);
+          console.error('getSpecificationsEntries - Failed to parse specifications string:', parseErr, 'Raw string:', specs);
           return [];
         }
       } else if (typeof specs === 'object' && !Array.isArray(specs) && specs !== null) {
-        return Object.entries(specs)
-          .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null)
-          .map(([key, value]) => [key, value]);
+        const entries = Object.entries(specs)
+          .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null && value !== '')
+          .map(([key, value]) => [key, String(value)]);
+        console.log('getSpecificationsEntries - Object entries:', entries);
+        return entries;
       } else if (Array.isArray(specs)) {
-        return specs
-          .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null)
-          .map(item => [item.key, item.value]);
+        const entries = specs
+          .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null && item.value !== '')
+          .map(item => [item.key, String(item.value)]);
+        console.log('getSpecificationsEntries - Array entries:', entries);
+        return entries;
+      } else {
+        console.warn('getSpecificationsEntries - Specifications is an unexpected type:', typeof specs, specs);
+        return [];
       }
-
-      return []; // Fallback for unexpected formats
     } catch (err) {
-      console.error('Error parsing specifications:', err);
+      console.error('getSpecificationsEntries - Error parsing specifications:', err);
       return [];
     }
   };
@@ -504,6 +576,7 @@ const ProductDetail = () => {
   }
 
   const specificationsEntries = getSpecificationsEntries();
+  console.log('Final specifications entries:', specificationsEntries);
   const displayPrice = product.salePrice || product.price;
   const hasSale = product.salePrice && product.salePrice < product.price;
 
@@ -521,7 +594,7 @@ const ProductDetail = () => {
               {product.category && (
                 <>
                   <Link
-                    to={`/shop/category/${product.category.slug || product.category._id}`}
+                    to={`/shop?category=${product.category._id}`}
                     className="text-gray-500 hover:text-gray-700"
                   >
                     {product.category.name}
@@ -595,6 +668,18 @@ const ProductDetail = () => {
                 {editSuccess && (
                   <div className="bg-green-50 border border-green-200 rounded-md p-4">
                     <p className="text-green-700">{editSuccess}</p>
+                  </div>
+                )}
+
+                {quoteError && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                    <p className="text-red-700">{quoteError}</p>
+                  </div>
+                )}
+
+                {quoteSuccess && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                    <p className="text-green-700">{quoteSuccess}</p>
                   </div>
                 )}
 
@@ -983,11 +1068,6 @@ const ProductDetail = () => {
                           {product.quantity > 0 ? 'In Stock' : 'Out of Stock'}
                         </span>
                       </div>
-                      {product.quantity > 0 && (
-                        <div className="mt-2 flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Only {product.quantity} left</span>
-                        </div>
-                      )}
                     </div>
 
                     <div className="prose prose-sm text-gray-600">
@@ -996,37 +1076,37 @@ const ProductDetail = () => {
 
                     <div className="border-t border-gray-200 pt-6">
                       <div className="flex items-center space-x-4">
-                        <div className="flex items-center border border-gray-300 rounded-md">
-                          <button
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                          >
-                            -
-                          </button>
-                          <span className="px-4 py-2 border-l border-r border-gray-300 min-w-12 text-center">
-                            {quantity}
-                          </span>
-                          <button
-                            onClick={() => setQuantity(quantity + 1)}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                          >
-                            +
-                          </button>
-                        </div>
-
+                        {product.quantity > 0 && (
+                          <>
+                            <div className="flex items-center border border-gray-300 rounded-md">
+                              <button
+                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                              >
+                                -
+                              </button>
+                              <span className="px-4 py-2 border-l border-r border-gray-300 min-w-12 text-center">
+                                {quantity}
+                              </span>
+                              <button
+                                onClick={() => setQuantity(quantity + 1)}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <button
+                              onClick={addToCart}
+                              className="flex-1 py-3 px-6 rounded-md font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                            >
+                              Add to Cart
+                            </button>
+                          </>
+                        )}
                         <button
-                          onClick={addToCart}
-                          disabled={product.quantity === 0}
-                          className={`flex-1 py-3 px-6 rounded-md font-semibold transition-colors ${
-                            product.quantity > 0
-                              ? 'bg-blue-600 text-white hover:bg-blue-700'
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          }`}
+                          onClick={handleRequestQuote}
+                          className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
                         >
-                          {product.quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
-                        </button>
-
-                        <button className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors">
                           Request Quote
                         </button>
                       </div>
@@ -1122,7 +1202,7 @@ const ProductDetail = () => {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">Related Products</h2>
                 <Link
-                  to={`/shop/category/${product.category?.slug || product.category?._id}`}
+                  to={`/shop?category=${product.category?._id}`}
                   className="text-blue-600 hover:text-blue-700 font-medium"
                 >
                   View All

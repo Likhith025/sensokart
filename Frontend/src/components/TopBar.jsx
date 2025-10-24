@@ -14,6 +14,10 @@ const Topbar = ({ cartItems = [] }) => {
   const [brands, setBrands] = useState([]);
   const [showCategories, setShowCategories] = useState(false);
   const [showBrands, setShowBrands] = useState(false);
+  
+  // Debounce state for search
+  const [debounceTimer, setDebounceTimer] = useState(null);
+  
   const navigate = useNavigate();
   const isLoggedIn = !!Cookies.get('authToken');
   const userRole = Cookies.get('userRole')?.toLowerCase();
@@ -76,32 +80,46 @@ const Topbar = ({ cartItems = [] }) => {
     fetchBrands();
   }, []);
 
-  // Search functionality
+  // Enhanced search functionality with debouncing
   const handleSearch = async (e) => {
     const query = e.target.value;
     setSearchQuery(query);
     
+    // Clear previous timer
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+
     if (query.trim() === '') {
       setSearchResults([]);
       setShowSearchResults(false);
       return;
     }
 
-    try {
-      setSearchLoading(true);
-      const response = await fetch(`${API_BASE_URL}/products/search?q=${encodeURIComponent(query)}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSearchResults(data);
-        setShowSearchResults(true);
+    // Set loading state immediately
+    setSearchLoading(true);
+    setShowSearchResults(true);
+
+    // Set new timer for debouncing
+    const newTimer = setTimeout(async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/products/search?q=${encodeURIComponent(query)}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSearchResults(data.products || data);
+        } else {
+          setSearchResults([]);
+        }
+      } catch (err) {
+        console.error('Search failed:', err);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
       }
-    } catch (err) {
-      console.error('Search failed:', err);
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
+    }, 300); // 300ms debounce delay
+
+    setDebounceTimer(newTimer);
   };
 
   const handleSearchSubmit = (e) => {
@@ -153,8 +171,105 @@ const Topbar = ({ cartItems = [] }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
     };
-  }, []);
+  }, [debounceTimer]);
+
+  // Enhanced search result item component
+  const SearchResultItem = ({ product }) => (
+    <div
+      onClick={() => handleProductClick(product._id)}
+      className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150 group"
+    >
+      {/* Product Image */}
+      <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden mr-4 border border-gray-200">
+        {product.coverPhoto ? (
+          <img
+            src={product.coverPhoto}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <div className={`w-full h-full bg-gray-200 flex items-center justify-center ${product.coverPhoto ? 'hidden' : 'flex'}`}>
+          <span className="text-gray-400 text-xs">No Image</span>
+        </div>
+      </div>
+      
+      {/* Product Info */}
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-semibold text-gray-900 truncate group-hover:text-green-600 transition-colors duration-200">
+          {product.name}
+        </h4>
+        
+        {/* Brand and Category */}
+        <div className="flex items-center space-x-2 mt-1">
+          {product.brand?.name && (
+            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+              {product.brand.name}
+            </span>
+          )}
+          {product.category?.name && (
+            <span className="text-xs text-gray-500">
+              in {product.category.name}
+            </span>
+          )}
+        </div>
+
+        {/* Price and Stock Status */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center space-x-2">
+            {product.salePrice && product.salePrice < product.price ? (
+              <>
+                <span className="text-base font-bold text-green-600">
+                  ₹{product.salePrice}
+                </span>
+                <span className="text-sm text-gray-400 line-through">
+                  ₹{product.price}
+                </span>
+                <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
+                  {Math.round((1 - product.salePrice / product.price) * 100)}% OFF
+                </span>
+              </>
+            ) : (
+              <span className="text-base font-bold text-gray-900">
+                ₹{product.price}
+              </span>
+            )}
+          </div>
+          
+          {product.quantity > 0 ? (
+            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
+              In Stock
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full font-medium">
+              Out of Stock
+            </span>
+          )}
+        </div>
+
+        {/* Description (truncated) */}
+        {product.description && (
+          <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+            {product.description}
+          </p>
+        )}
+      </div>
+
+      {/* View Product Arrow */}
+      <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </div>
+    </div>
+  );
 
   return (
     <nav className="bg-white shadow-md fixed w-full z-50 top-0">
@@ -175,103 +290,86 @@ const Topbar = ({ cartItems = [] }) => {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Search products..."
+                    placeholder="Search products by name, brand, category, or description..."
                     value={searchQuery}
                     onChange={handleSearch}
                     onFocus={() => searchQuery && setShowSearchResults(true)}
-                    className="w-full px-4 py-2 pl-10 pr-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 pl-12 pr-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm transition-all duration-200"
                   />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
                   {searchLoading && (
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
                     </div>
+                  )}
+                  
+                  {/* Clear search button */}
+                  {searchQuery && !searchLoading && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        setShowSearchResults(false);
+                      }}
+                      className="absolute inset-y-0 right-0 pr-10 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   )}
                 </div>
 
                 {/* Search Results Dropdown */}
-                {showSearchResults && searchResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto z-50">
-                    {searchResults.map((product) => (
-                      <div
-                        key={product._id}
-                        onClick={() => handleProductClick(product._id)}
-                        className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
-                      >
-                        {/* Product Image */}
-                        <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-md overflow-hidden mr-3">
-                          {product.coverPhoto ? (
-                            <img
-                              src={product.coverPhoto}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                              <span className="text-gray-400 text-xs">No Image</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Product Info */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">
-                            {product.name}
-                          </h4>
-                          <p className="text-xs text-gray-500 truncate">
-                            {product.brand?.name}
-                          </p>
-                          <div className="flex items-center justify-between mt-1">
-                            {product.salePrice ? (
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm font-semibold text-green-600">
-                                  ₹{product.salePrice}
-                                </span>
-                                <span className="text-xs text-gray-400 line-through">
-                                  ₹{product.price}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-sm font-semibold text-gray-900">
-                                ₹{product.price}
-                              </span>
-                            )}
-                            {product.quantity > 0 ? (
-                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                                In Stock
-                              </span>
-                            ) : (
-                              <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                                Out of Stock
-                              </span>
-                            )}
-                          </div>
+                {showSearchResults && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-96 overflow-y-auto z-50">
+                    {/* Results Count */}
+                    {searchResults.length > 0 && (
+                      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                        <p className="text-sm text-gray-600 font-medium">
+                          Found {searchResults.length} product{searchResults.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Search Results */}
+                    <div className="max-h-80 overflow-y-auto">
+                      {searchResults.map((product) => (
+                        <SearchResultItem key={product._id} product={product} />
+                      ))}
+                    </div>
+
+                    {/* Loading State */}
+                    {searchLoading && (
+                      <div className="p-6 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+                          <span className="text-sm text-gray-600">Searching products...</span>
                         </div>
                       </div>
-                    ))}
-                    
-                    {/* View All Results */}
-                    <div className="p-3 bg-gray-50 border-t border-gray-200">
-                      <button
-                        type="submit"
-                        className="w-full text-center text-sm font-medium text-green-600 hover:text-green-700 py-2"
-                      >
-                        View all {searchResults.length} results
-                      </button>
-                    </div>
-                  </div>
-                )}
+                    )}
 
-                {/* No Results Message */}
-                {showSearchResults && searchQuery && !searchLoading && searchResults.length === 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-50">
-                    <p className="text-sm text-gray-500 text-center">
-                      No products found for "{searchQuery}"
-                    </p>
+                    {/* No Results Message */}
+                    {!searchLoading && searchQuery && searchResults.length === 0 && (
+                      <div className="p-6 text-center">
+                        <svg className="h-12 w-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-sm text-gray-500 mb-2">
+                          No products found for "<span className="font-medium text-gray-700">"{searchQuery}"</span>"
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Try different keywords or check the spelling
+                        </p>
+                      </div>
+                    )}
+
+
                   </div>
                 )}
               </form>
@@ -500,33 +598,7 @@ const Topbar = ({ cartItems = [] }) => {
                 {showSearchResults && searchResults.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto z-50">
                     {searchResults.map((product) => (
-                      <div
-                        key={product._id}
-                        onClick={() => handleProductClick(product._id)}
-                        className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
-                      >
-                        <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-md overflow-hidden mr-3">
-                          {product.coverPhoto ? (
-                            <img
-                              src={product.coverPhoto}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                              <span className="text-gray-400 text-xs">No Image</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">
-                            {product.name}
-                          </h4>
-                          <p className="text-xs text-gray-500">
-                            ₹{product.salePrice || product.price}
-                          </p>
-                        </div>
-                      </div>
+                      <SearchResultItem key={product._id} product={product} />
                     ))}
                   </div>
                 )}

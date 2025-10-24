@@ -6,11 +6,8 @@ import API_BASE_URL from '../src';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchLoading, setSearchLoading] = useState(false);
   const [cartItems, setCartItems] = useState([]);
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
   const token = Cookies.get('authToken');
@@ -157,34 +154,7 @@ const Home = () => {
     }
   };
 
-  // Search functionality
-  const handleSearch = async (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    if (query.trim() === '') {
-      setSearchResults([]);
-      return;
-    }
-    
-    try {
-      setSearchLoading(true);
-      const response = await fetch(`${API_BASE_URL}/products/search?q=${encodeURIComponent(query)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSearchResults(data.products || data);
-      } else {
-        throw new Error('Failed to search products');
-      }
-    } catch (err) {
-      setError(err.message || 'Search failed.');
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const displayedProducts = searchQuery ? searchResults : products;
-
-  // Add Product Handlers (same as before)
+  // Add Product Handlers
   const handleAddInputChange = (e) => {
     setAddFormData({ ...addFormData, [e.target.name]: e.target.value });
   };
@@ -351,24 +321,6 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Search Bar */}
-          <div className="text-center mb-6">
-            <div className="relative max-w-xl mx-auto">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearch}
-                placeholder="Search products by name, description, or SKU..."
-                className="w-full p-4 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-md"
-              />
-              {searchLoading && (
-                <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-600"></div>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Admin Add Product Button */}
           {userRole === 'admin' && (
             <div className="text-center mb-6">
@@ -417,8 +369,8 @@ const Home = () => {
           {/* Products Grid */}
           {!loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {displayedProducts.length > 0 ? (
-                displayedProducts.map((product) => {
+              {products.length > 0 ? (
+                products.map((product) => {
                   const cartQuantity = getCartQuantity(product._id);
                   return (
                     <Link 
@@ -531,14 +483,6 @@ const Home = () => {
               ) : (
                 <div className="col-span-full text-center py-12">
                   <div className="text-gray-500 text-lg mb-4">No products found</div>
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Clear Search
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -546,7 +490,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Add Product Modal (same as before) */}
+      {/* Add Product Modal */}
       {showAddModal && userRole === 'admin' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
