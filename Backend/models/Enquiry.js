@@ -28,6 +28,11 @@ const enquirySchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  country: {
+    type: String,
+    required: true,
+    trim: true
+  },
   message: {
     type: String,
     required: true
@@ -49,7 +54,7 @@ const enquirySchema = new mongoose.Schema({
     type: String
   },
   responseMessage: {
-    type: String // Store the response sent to customer
+    type: String
   }
 }, {
   timestamps: true
@@ -63,5 +68,6 @@ enquirySchema.virtual('totalQuantity').get(function() {
 // Index for better query performance
 enquirySchema.index({ status: 1, createdAt: -1 });
 enquirySchema.index({ email: 1 });
+enquirySchema.index({ country: 1 });
 
 export default mongoose.model("Enquiry", enquirySchema);

@@ -3,7 +3,7 @@ import Enquiry from '../models/Enquiry.js';
 // Create enquiry (User)
 export const createEnquiry = async (req, res) => {
   try {
-    const { products, name, email, phone, message } = req.body;
+    const { products, name, email, phone, message, country } = req.body;
 
     // Validate products array
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -16,7 +16,8 @@ export const createEnquiry = async (req, res) => {
       email,
       phone,
       message,
-      status: 'pending' // Explicitly set to pending
+      status: 'pending',
+      country
     });
 
     await enquiry.save();

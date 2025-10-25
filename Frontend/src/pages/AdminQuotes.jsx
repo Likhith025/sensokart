@@ -386,6 +386,7 @@ const AdminQuotes = () => {
                   <p><strong>Name:</strong> {selectedQuote.name}</p>
                   <p><strong>Email:</strong> {selectedQuote.email}</p>
                   <p><strong>Phone:</strong> {selectedQuote.phone}</p>
+<p><strong>Country:</strong> {selectedQuote.country}</p>
                   <p><strong>Status:</strong> 
                     <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedQuote.status)}`}>
                       {getStatusText(selectedQuote.status)}
