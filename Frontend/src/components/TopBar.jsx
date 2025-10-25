@@ -543,10 +543,21 @@ const Topbar = ({ cartItems = [] }) => {
 
             {/* Login/Logout on Level 2 */}
             <div className="flex items-center space-x-4">
-              {/* Show Dropdowns and Logout only for admin */}
+              {/* Show Dropdowns, Quote Requests and Logout only for admin */}
               {isLoggedIn && userRole === 'admin' && (
                 <>
-                  {/* Simple Dropdowns Button - No arrow, no dropdown menu */}
+                  {/* Quote Requests Button */}
+                  <button 
+                    onClick={() => navigate('/adminquotes')}
+                    className="hover:text-green-200 px-3 py-1 text-sm font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-green-200 flex items-center"
+                  >
+                    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Quote Requests
+                  </button>
+
+                  {/* Dropdowns Button */}
                   <button 
                     onClick={() => navigate('/dropdowns')}
                     className="hover:text-green-200 px-3 py-1 text-sm font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-green-200"
@@ -693,10 +704,26 @@ const Topbar = ({ cartItems = [] }) => {
               Contact
             </Link>
 
-            {/* Admin Dropdowns in Mobile Menu */}
+            {/* Admin Section in Mobile Menu */}
             {isLoggedIn && userRole === 'admin' && (
               <div className="border-t border-gray-200 pt-2">
                 <div className="px-3 py-2 text-sm font-medium text-gray-500">Admin</div>
+                
+                {/* Quote Requests in Mobile */}
+                <button
+                  onClick={() => {
+                    navigate('/adminquotes');
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left flex items-center"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Quote Requests
+                </button>
+
+                {/* Dropdowns in Mobile */}
                 <button
                   onClick={() => {
                     navigate('/dropdowns');

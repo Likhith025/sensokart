@@ -19,6 +19,7 @@ const ProductDetail = () => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [quoteSuccess, setQuoteSuccess] = useState('');
   const [quoteError, setQuoteError] = useState('');
+  const [showShareOptions, setShowShareOptions] = useState(false);
 
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
   const token = Cookies.get('authToken');
@@ -267,47 +268,52 @@ const ProductDetail = () => {
   };
 
   // Request Quote functionality
-  const handleRequestQuote = async () => {
-    if (!token) {
-      setQuoteError('Please log in to request a quote.');
-      setTimeout(() => setQuoteError(''), 3000);
-      return;
-    }
-
-    try {
-      setQuoteError('');
-      setQuoteSuccess('');
-
-      const response = await fetch(`${API_BASE_URL}/quotes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          productId: id,
-          quantity,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = 'Failed to request quote';
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (parseError) {
-          errorMessage = errorText || errorMessage;
-        }
-        throw new Error(errorMessage);
+  const handleRequestQuote = () => {
+    navigate('/requestquote', { 
+      state: { 
+        productId: id,
+        product,
+        quantity 
       }
+    });
+  };
 
-      setQuoteSuccess('Quote requested successfully!');
-      setTimeout(() => setQuoteSuccess(''), 3000);
+  // Share functionality
+  const getShareableLink = () => {
+    return `${window.location.origin}/product/${id}`;
+  };
+
+  const shareOnWhatsApp = () => {
+    const message = `Check out this product: ${product.name}\n${getShareableLink()}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareableLink());
+      alert('Link copied to clipboard!');
+      setShowShareOptions(false);
     } catch (err) {
-      console.error('Error requesting quote:', err);
-      setQuoteError(err.message || 'Failed to request quote');
-      setTimeout(() => setQuoteError(''), 3000);
+      console.error('Failed to copy: ', err);
+    }
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      // Use native share dialog on mobile
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out this product: ${product.name}`,
+          url: getShareableLink(),
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      // Fallback to copy to clipboard on desktop
+      copyToClipboard();
     }
   };
 
@@ -564,7 +570,7 @@ const ProductDetail = () => {
               <p className="text-gray-600 mb-6">{error || 'The product you are looking for does not exist.'}</p>
               <Link
                 to="/shop"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
               >
                 Continue Shopping
               </Link>
@@ -587,15 +593,15 @@ const ProductDetail = () => {
         <nav className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-2 py-4 text-sm">
-              <Link to="/" className="text-gray-500 hover:text-gray-700">Home</Link>
+              <Link to="/" className="text-gray-500 hover:text-gray-700 cursor-pointer">Home</Link>
               <span className="text-gray-400">/</span>
-              <Link to="/shop" className="text-gray-500 hover:text-gray-700">Shop</Link>
+              <Link to="/shop" className="text-gray-500 hover:text-gray-700 cursor-pointer">Shop</Link>
               <span className="text-gray-400">/</span>
               {product.category && (
                 <>
                   <Link
                     to={`/shop?category=${product.category._id}`}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-gray-500 hover:text-gray-700 cursor-pointer"
                   >
                     {product.category.name}
                   </Link>
@@ -639,8 +645,8 @@ const ProductDetail = () => {
                       src={img}
                       alt={`${product.name} view ${idx + 1}`}
                       onClick={() => setSelectedImage(img)}
-                      className={`w-full h-20 object-cover rounded-md cursor-pointer border-2 transition-all ${
-                        selectedImage === img ? 'border-blue-500' : 'border-transparent hover:border-gray-300'
+                      className={`w-full h-20 object-cover rounded-md cursor-pointer border-2 transition-all duration-200 hover:border-blue-400 hover:scale-105 ${
+                        selectedImage === img ? 'border-blue-500' : 'border-transparent'
                       }`}
                     />
                   ))}
@@ -648,16 +654,41 @@ const ProductDetail = () => {
               </div>
 
               <div className="space-y-6">
-                {userRole === 'admin' && (
-                  <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center">
+                  {userRole === 'admin' && (
                     <button
                       onClick={() => setIsEditMode(!isEditMode)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                     >
                       {isEditMode ? 'Cancel Edit' : 'Edit Product'}
                     </button>
+                  )}
+                  
+                  {/* Share Buttons */}
+                  <div className="flex gap-2">
+                    {/* WhatsApp Share Button */}
+                    <button
+                      onClick={shareOnWhatsApp}
+                      className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 transform hover:scale-110 cursor-pointer"
+                      title="Share on WhatsApp"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893-.001-3.189-1.262-6.187-3.55-8.444"/>
+                      </svg>
+                    </button>
+
+                    {/* Share Button */}
+                    <button
+                      onClick={handleShare}
+                      className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all duration-200 transform hover:scale-110 cursor-pointer"
+                      title="Share Product"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                      </svg>
+                    </button>
                   </div>
-                )}
+                </div>
 
                 {editError && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -695,7 +726,7 @@ const ProductDetail = () => {
                             name="name"
                             value={editFormData.name}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                             required
                           />
                         </div>
@@ -706,7 +737,7 @@ const ProductDetail = () => {
                             name="sku"
                             value={editFormData.sku}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                             required
                           />
                         </div>
@@ -717,7 +748,7 @@ const ProductDetail = () => {
                             name="price"
                             value={editFormData.price}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                             required
                             step="0.01"
                           />
@@ -729,7 +760,7 @@ const ProductDetail = () => {
                             name="salePrice"
                             value={editFormData.salePrice}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                             step="0.01"
                           />
                         </div>
@@ -740,7 +771,7 @@ const ProductDetail = () => {
                             name="quantity"
                             value={editFormData.quantity}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                             required
                           />
                         </div>
@@ -751,7 +782,7 @@ const ProductDetail = () => {
                             name="weight"
                             value={editFormData.weight}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                             placeholder="e.g., 1 kg"
                           />
                         </div>
@@ -764,7 +795,7 @@ const ProductDetail = () => {
                             name="brand"
                             value={editFormData.brand}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                             required
                           >
                             <option value="">Select Brand</option>
@@ -779,7 +810,7 @@ const ProductDetail = () => {
                             name="category"
                             value={editFormData.category}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                             required
                           >
                             <option value="">Select Category</option>
@@ -794,7 +825,7 @@ const ProductDetail = () => {
                             name="subCategory"
                             value={editFormData.subCategory}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                             required
                           >
                             <option value="">Select Sub Category</option>
@@ -813,7 +844,7 @@ const ProductDetail = () => {
                             name="manufacturer"
                             value={editFormData.manufacturer}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                           />
                         </div>
                         <div>
@@ -823,7 +854,7 @@ const ProductDetail = () => {
                             name="modelNo"
                             value={editFormData.modelNo}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                           />
                         </div>
                       </div>
@@ -835,7 +866,7 @@ const ProductDetail = () => {
                           value={editFormData.description}
                           onChange={handleEditInputChange}
                           rows="4"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                           required
                         />
                       </div>
@@ -847,7 +878,7 @@ const ProductDetail = () => {
                           name="features"
                           value={editFormData.features}
                           onChange={handleEditInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                           placeholder="Feature 1, Feature 2, Feature 3"
                         />
                       </div>
@@ -861,19 +892,19 @@ const ProductDetail = () => {
                               value={field.key}
                               onChange={(e) => handleEditSpecsChange(index, 'key', e.target.value)}
                               placeholder="Specification Name"
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                             />
                             <input
                               type="text"
                               value={field.value}
                               onChange={(e) => handleEditSpecsChange(index, 'value', e.target.value)}
                               placeholder="Specification Value"
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
                             />
                             <button
                               type="button"
                               onClick={() => removeEditSpecsField(index)}
-                              className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                              className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                             >
                               Remove
                             </button>
@@ -882,7 +913,7 @@ const ProductDetail = () => {
                         <button
                           type="button"
                           onClick={addEditSpecsField}
-                          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                         >
                           Add Specification
                         </button>
@@ -902,7 +933,7 @@ const ProductDetail = () => {
                               <button
                                 type="button"
                                 onClick={() => setRemoveCoverPhoto(true)}
-                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-all duration-200 cursor-pointer"
                               >
                                 ×
                               </button>
@@ -913,7 +944,7 @@ const ProductDetail = () => {
                           <button
                             type="button"
                             onClick={() => coverPhotoInputRef.current.click()}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                           >
                             {editCoverPhoto ? 'Change Cover Photo' : 'Upload Cover Photo'}
                           </button>
@@ -930,7 +961,7 @@ const ProductDetail = () => {
                               <button
                                 type="button"
                                 onClick={removeEditCoverPhoto}
-                                className="text-red-500 hover:text-red-700"
+                                className="text-red-500 hover:text-red-700 cursor-pointer"
                               >
                                 Remove
                               </button>
@@ -957,7 +988,7 @@ const ProductDetail = () => {
                                     <button
                                       type="button"
                                       onClick={() => removeExistingImage(img)}
-                                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
                                     >
                                       ×
                                     </button>
@@ -970,7 +1001,7 @@ const ProductDetail = () => {
                           <button
                             type="button"
                             onClick={() => imagesInputRef.current.click()}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                           >
                             Upload Additional Images
                           </button>
@@ -997,7 +1028,7 @@ const ProductDetail = () => {
                                   <button
                                     type="button"
                                     onClick={() => removeEditImage(index)}
-                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
                                   >
                                     ×
                                   </button>
@@ -1012,14 +1043,14 @@ const ProductDetail = () => {
                         <button
                           type="submit"
                           disabled={editLoading}
-                          className="py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                          className="py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                         >
                           {editLoading ? 'Updating...' : 'Update Product'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setIsEditMode(false)}
-                          className="py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                          className="py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -1081,7 +1112,7 @@ const ProductDetail = () => {
                             <div className="flex items-center border border-gray-300 rounded-md">
                               <button
                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
                               >
                                 -
                               </button>
@@ -1090,14 +1121,14 @@ const ProductDetail = () => {
                               </span>
                               <button
                                 onClick={() => setQuantity(quantity + 1)}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
                               >
                                 +
                               </button>
                             </div>
                             <button
                               onClick={addToCart}
-                              className="flex-1 py-3 px-6 rounded-md font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                              className="flex-1 py-3 px-6 rounded-md font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                             >
                               Add to Cart
                             </button>
@@ -1105,7 +1136,7 @@ const ProductDetail = () => {
                         )}
                         <button
                           onClick={handleRequestQuote}
-                          className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+                          className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 hover:border-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                         >
                           Request Quote
                         </button>
@@ -1120,13 +1151,13 @@ const ProductDetail = () => {
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => updateCartQuantity(product._id, cartQuantity - 1)}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-all duration-200 cursor-pointer"
                               >
                                 -
                               </button>
                               <button
                                 onClick={() => updateCartQuantity(product._id, cartQuantity + 1)}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-all duration-200 cursor-pointer"
                               >
                                 +
                               </button>
@@ -1148,7 +1179,7 @@ const ProductDetail = () => {
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${
+                        className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition-all duration-200 cursor-pointer ${
                           activeTab === tab
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1175,7 +1206,9 @@ const ProductDetail = () => {
                           <table className="min-w-full divide-y divide-gray-200">
                             <tbody className="divide-y divide-gray-200">
                               {specificationsEntries.map(([key, value], index) => (
-                                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                <tr key={index} className={`hover:bg-gray-100 transition-colors duration-150 cursor-default ${
+                                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                }`}>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
                                     {key.replace(/([A-Z])/g, ' $1').trim()}
                                   </td>
@@ -1203,14 +1236,18 @@ const ProductDetail = () => {
                 <h2 className="text-2xl font-bold text-gray-900">Related Products</h2>
                 <Link
                   to={`/shop?category=${product.category?._id}`}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200 cursor-pointer"
                 >
                   View All
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {relatedProducts.map((relatedProduct) => (
-                  <div key={relatedProduct._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                  <div 
+                    key={relatedProduct._id} 
+                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+                    onClick={() => navigate(`/product/${relatedProduct._id}`)}
+                  >
                     <div className="aspect-w-1 aspect-h-1 bg-gray-200">
                       <img
                         src={relatedProduct.coverPhoto || relatedProduct.images[0]}
@@ -1219,17 +1256,14 @@ const ProductDetail = () => {
                       />
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-blue-600 transition-colors duration-200">
                         {relatedProduct.name}
                       </h3>
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-bold text-gray-900">
                           {formatPrice(relatedProduct.salePrice || relatedProduct.price)}
                         </span>
-                        <button
-                          onClick={() => navigate(`/product/${relatedProduct._id}`)}
-                          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-                        >
+                        <button className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors duration-200 cursor-pointer">
                           View Details
                         </button>
                       </div>

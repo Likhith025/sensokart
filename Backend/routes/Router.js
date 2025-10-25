@@ -51,8 +51,10 @@ import {
   createEnquiry, 
   getEnquiries, 
   getEnquiryById, 
-  updateEnquiryStatus, 
-  deleteEnquiry 
+  deleteEnquiry ,
+  updateEnquiry,
+  getEnquiryStats,
+  respondToEnquiry
 } from '../controllers/enquiryController.js';
 
 import { 
@@ -118,13 +120,17 @@ router.get('/page/title/:title', getPageByTitle);
 router.post('/page/upsert', protectAdmin, upsertPage);
 router.delete('/page/:id', protectAdmin, deletePage);
 
+// Public route
 router.post('/enquiry', createEnquiry);
 
 // Admin routes
 router.get('/enquiry/', protectAdmin, getEnquiries);
+router.get('/enquiry/stats', protectAdmin, getEnquiryStats);
 router.get('/enquiry/:id', protectAdmin, getEnquiryById);
-router.put('/enquiry/:id/status', protectAdmin, updateEnquiryStatus);
+router.put('/enquiry/:id', protectAdmin, updateEnquiry);
+router.post('/enquiry/:id/respond', protectAdmin, respondToEnquiry);
 router.delete('/enquiry/:id', protectAdmin, deleteEnquiry);
+
 
 router.post('/contacts', createContact);
 

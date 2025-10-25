@@ -16,6 +16,8 @@ import Product from './pages/Product';
 import Dropdowns from './pages/Dropdowns';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Brands from './pages/Brands';
+import RequestQuote from './pages/RequestQuote';
+import AdminQuotes from './pages/AdminQuotes';
 
 const App = () => {
   return (
@@ -37,6 +39,9 @@ const App = () => {
         <Route path="/dropdowns" element={<Dropdowns/>} />
         <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
         <Route path="/brands" element={<Brands/>} />
+        <Route path="/requestquote" element={<RequestQuote/>} />
+        <Route path="/adminquotes" element={<AdminQuotes/>} />
+
       </Routes>
       <Footer/>
     </div>

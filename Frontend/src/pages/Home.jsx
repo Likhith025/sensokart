@@ -46,18 +46,65 @@ const Home = () => {
   const [showAddSubCategory, setShowAddSubCategory] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState('');
 
-  // Cart management
+  // Cart management with localStorage fallback
   useEffect(() => {
-    const savedCart = Cookies.get('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
+    const loadCart = () => {
+      try {
+        // Try cookies first
+        const savedCart = Cookies.get('cart');
+        if (savedCart) {
+          const parsedCart = JSON.parse(savedCart);
+          if (Array.isArray(parsedCart)) {
+            setCartItems(parsedCart);
+            return;
+          }
+        }
+        
+        // Fallback to localStorage
+        const fallbackCart = localStorage.getItem('cart_fallback');
+        if (fallbackCart) {
+          const parsedCart = JSON.parse(fallbackCart);
+          if (Array.isArray(parsedCart)) {
+            setCartItems(parsedCart);
+            // Sync back to cookies if possible
+            try {
+              Cookies.set('cart', JSON.stringify(parsedCart), { expires: 7 });
+            } catch (e) {
+              console.log('Using localStorage for cart storage');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error);
+        setCartItems([]);
+      }
+    };
+
+    loadCart();
   }, []);
 
+  // Save cart to both cookies and localStorage
   useEffect(() => {
-    Cookies.set('cart', JSON.stringify(cartItems), { expires: 7 });
+    const saveCart = () => {
+      if (cartItems.length > 0) {
+        try {
+          Cookies.set('cart', JSON.stringify(cartItems), { expires: 7 });
+          localStorage.setItem('cart_fallback', JSON.stringify(cartItems));
+        } catch (error) {
+          console.error('Error saving cart:', error);
+          // If cookies fail, use localStorage only
+          localStorage.setItem('cart_fallback', JSON.stringify(cartItems));
+        }
+      } else {
+        Cookies.remove('cart');
+        localStorage.removeItem('cart_fallback');
+      }
+    };
+
+    saveCart();
   }, [cartItems]);
 
+  // Enhanced addToCart function
   const addToCart = (product) => {
     setCartItems((prev) => {
       const existing = prev.find(item => item._id === product._id);
@@ -66,7 +113,26 @@ const Home = () => {
           item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      
+      // Include all necessary product data for cart
+      const cartProduct = {
+        _id: product._id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        salePrice: product.salePrice,
+        coverPhoto: product.coverPhoto,
+        images: product.images || [],
+        sku: product.sku,
+        brand: product.brand || {},
+        category: product.category || {},
+        subCategory: product.subCategory || {},
+        quantity: 1,
+        stockQuantity: product.quantity || 0
+      };
+      
+      console.log('Adding to cart:', cartProduct);
+      return [...prev, cartProduct];
     });
   };
 
@@ -87,14 +153,19 @@ const Home = () => {
     return item ? item.quantity : 0;
   };
 
-  // Fetch products - you can modify this to fetch top products if you have an endpoint
+  // Debug cart function
+  const debugCart = () => {
+    console.log('Current cart items:', cartItems);
+    console.log('Cookies cart:', Cookies.get('cart'));
+    console.log('LocalStorage cart:', localStorage.getItem('cart_fallback'));
+  };
+
+  // Fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError('');
       
-      // You can modify this URL to fetch top products if you have a specific endpoint
-      // For now, it fetches all products, but you can add query params for top products
       const response = await fetch(`${API_BASE_URL}/products?sortBy=createdAt&sortOrder=desc&limit=12`);
       
       if (!response.ok) {
@@ -156,7 +227,13 @@ const Home = () => {
 
   // Add Product Handlers
   const handleAddInputChange = (e) => {
-    setAddFormData({ ...addFormData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setAddFormData({ ...addFormData, [name]: value });
+    
+    // Fetch subcategories when category changes
+    if (name === 'category') {
+      fetchSubCategories(value);
+    }
   };
 
   const handleAddFileChange = (e, type) => {
@@ -307,6 +384,7 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar cartItems={cartItems} />
       
+      
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16">
         {/* Header Section */}
@@ -341,6 +419,9 @@ const Home = () => {
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-center">
               <p className="font-medium">
                 You have {cartItems.reduce((sum, item) => sum + item.quantity, 0)} item(s) in your cart.
+                <Link to="/cart" className="ml-2 text-blue-600 hover:text-blue-800 underline">
+                  View Cart
+                </Link>
               </p>
             </div>
           )}
@@ -373,76 +454,77 @@ const Home = () => {
                 products.map((product) => {
                   const cartQuantity = getCartQuantity(product._id);
                   return (
-                    <Link 
-                      to={`/product/${product._id}`} 
+                    <div 
                       key={product._id} 
-                      className="bg-white shadow-lg rounded-xl overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl block"
+                      className="bg-white shadow-lg rounded-xl overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl"
                     >
-                      <div className="relative">
-                        {product.coverPhoto ? (
-                          <img 
-                            src={product.coverPhoto} 
-                            alt={product.name} 
-                            className="w-full h-48 object-cover" 
-                          />
-                        ) : (
-                          <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                            <span className="text-gray-500">No Image</span>
-                          </div>
-                        )}
-                        {product.salePrice && product.salePrice < product.price && (
-                          <span className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
-                            Sale
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
-                          {product.name}
-                        </h3>
-                        <p className="text-xs text-gray-500 mb-1">
-                          Brand: {product.brand?.name || 'N/A'}
-                        </p>
-                        <p className="text-xs text-gray-500 mb-1">
-                          Category: {product.category?.name || 'N/A'}
-                        </p>
-                        <p className="text-xs text-gray-500 mb-2">
-                          Subcategory: {product.subCategory?.name || 'N/A'}
-                        </p>
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                          {product.description}
-                        </p>
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            {product.salePrice && product.salePrice < product.price ? (
-                              <>
-                                <span className="text-xl font-bold text-red-600">
-                                  ₹{product.salePrice}
-                                </span>
-                                <span className="text-sm text-gray-500 line-through ml-2">
-                                  ₹{product.price}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-xl font-bold text-gray-900">
-                                ₹{product.price}
-                              </span>
-                            )}
-                          </div>
-                          {product.quantity > 0 ? (
-                            <span className="text-xs text-green-600 font-medium">In Stock</span>
+                      <Link to={`/product/${product._id}`} className="block">
+                        <div className="relative">
+                          {product.coverPhoto ? (
+                            <img 
+                              src={product.coverPhoto} 
+                              alt={product.name} 
+                              className="w-full h-48 object-cover" 
+                            />
                           ) : (
-                            <span className="text-xs text-red-600 font-medium">Out of Stock</span>
+                            <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                              <span className="text-gray-500">No Image</span>
+                            </div>
+                          )}
+                          {product.salePrice && product.salePrice < product.price && (
+                            <span className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
+                              Sale
+                            </span>
                           )}
                         </div>
-                        
+                        <div className="p-4">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
+                            {product.name}
+                          </h3>
+                          <p className="text-xs text-gray-500 mb-1">
+                            Brand: {product.brand?.name || 'N/A'}
+                          </p>
+                          <p className="text-xs text-gray-500 mb-1">
+                            Category: {product.category?.name || 'N/A'}
+                          </p>
+                          <p className="text-xs text-gray-500 mb-2">
+                            Subcategory: {product.subCategory?.name || 'N/A'}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                            {product.description}
+                          </p>
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              {product.salePrice && product.salePrice < product.price ? (
+                                <>
+                                  <span className="text-xl font-bold text-red-600">
+                                    ₹{product.salePrice}
+                                  </span>
+                                  <span className="text-sm text-gray-500 line-through ml-2">
+                                    ₹{product.price}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-xl font-bold text-gray-900">
+                                  ₹{product.price}
+                                </span>
+                              )}
+                            </div>
+                            {product.quantity > 0 ? (
+                              <span className="text-xs text-green-600 font-medium">In Stock</span>
+                            ) : (
+                              <span className="text-xs text-red-600 font-medium">Out of Stock</span>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                      
+                      {/* Cart Controls */}
+                      <div className="px-4 pb-4">
                         {cartQuantity > 0 ? (
                           <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
                             <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                updateCartQuantity(product._id, cartQuantity - 1);
-                              }}
+                              onClick={() => updateCartQuantity(product._id, cartQuantity - 1)}
                               className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
                             >
                               -
@@ -451,10 +533,7 @@ const Home = () => {
                               {cartQuantity}
                             </span>
                             <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                updateCartQuantity(product._id, cartQuantity + 1);
-                              }}
+                              onClick={() => updateCartQuantity(product._id, cartQuantity + 1)}
                               className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
                             >
                               +
@@ -462,10 +541,7 @@ const Home = () => {
                           </div>
                         ) : (
                           <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              addToCart(product);
-                            }}
+                            onClick={() => addToCart(product)}
                             disabled={product.quantity === 0}
                             className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 ${
                               product.quantity > 0
@@ -477,12 +553,18 @@ const Home = () => {
                           </button>
                         )}
                       </div>
-                    </Link>
+                    </div>
                   );
                 })
               ) : (
                 <div className="col-span-full text-center py-12">
                   <div className="text-gray-500 text-lg mb-4">No products found</div>
+                  <button
+                    onClick={fetchProducts}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Retry
+                  </button>
                 </div>
               )}
             </div>

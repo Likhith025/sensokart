@@ -82,7 +82,26 @@ const Product = () => {
           item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      
+      // Include all necessary product data for cart
+      const cartProduct = {
+        _id: product._id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        salePrice: product.salePrice,
+        coverPhoto: product.coverPhoto,
+        images: product.images || [],
+        sku: product.sku,
+        brand: product.brand || {},
+        category: product.category || {},
+        subCategory: product.subCategory || {},
+        quantity: 1,
+        stockQuantity: product.quantity || 0
+      };
+      
+      console.log('Adding to cart:', cartProduct);
+      return [...prev, cartProduct];
     });
   };
 
@@ -101,6 +120,13 @@ const Product = () => {
   const getCartQuantity = (productId) => {
     const item = cartItems.find(item => item._id === productId);
     return item ? item.quantity : 0;
+  };
+
+  // Debug cart function
+  const debugCart = () => {
+    console.log('Current cart items:', cartItems);
+    console.log('Cookies cart:', Cookies.get('cart'));
+    console.log('LocalStorage cart:', localStorage.getItem('cart_fallback'));
   };
 
   // Parse URL parameters on component mount and when location changes
