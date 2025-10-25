@@ -128,6 +128,7 @@ const Topbar = ({ cartItems = [] }) => {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
       setShowSearchResults(false);
       setSearchQuery('');
+      setIsMenuOpen(false); // Close mobile menu after search
     }
   };
 
@@ -135,23 +136,27 @@ const Topbar = ({ cartItems = [] }) => {
     navigate(`/product/${productId}`);
     setShowSearchResults(false);
     setSearchQuery('');
+    setIsMenuOpen(false); // Close mobile menu after product click
   };
 
   // Handle category selection
   const handleCategorySelect = (categoryId, categoryName) => {
     navigate(`/shop?category=${categoryId}`);
     setShowCategories(false);
+    setIsMenuOpen(false); // Close mobile menu
   };
 
   const handleSubCategorySelect = (categoryId, subCategoryId, subCategoryName) => {
     navigate(`/shop?category=${categoryId}&subCategory=${subCategoryId}`);
     setShowCategories(false);
+    setIsMenuOpen(false); // Close mobile menu
   };
 
   // Handle brand selection
   const handleBrandSelect = (brandId, brandName) => {
     navigate(`/shop?brand=${brandId}`);
     setShowBrands(false);
+    setIsMenuOpen(false); // Close mobile menu
   };
 
   // Close search results when clicking outside
@@ -271,6 +276,18 @@ const Topbar = ({ cartItems = [] }) => {
     </div>
   );
 
+  // Mobile search icon handler - opens the menu and focuses on search
+  const handleMobileSearchClick = () => {
+    setIsMenuOpen(true);
+    // Small timeout to ensure the menu is open before focusing
+    setTimeout(() => {
+      const mobileSearchInput = document.querySelector('.mobile-search-input');
+      if (mobileSearchInput) {
+        mobileSearchInput.focus();
+      }
+    }, 100);
+  };
+
   return (
     <nav className="bg-white shadow-md fixed w-full z-50 top-0">
       {/* Level 1 - 80% height */}
@@ -368,8 +385,6 @@ const Topbar = ({ cartItems = [] }) => {
                         </p>
                       </div>
                     )}
-
-
                   </div>
                 )}
               </form>
@@ -392,22 +407,20 @@ const Topbar = ({ cartItems = [] }) => {
                 )}
               </Link>
 
-              {/* Mobile Search Icon */}
+              {/* Mobile Search Icon - Now opens menu with search */}
               <button 
                 className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200"
-                onClick={() => navigate('/search')}
+                onClick={handleMobileSearchClick}
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </button>
 
-              {/* Mobile Menu Button */}
-              <button
-                onClick={toggleMenu}
-                className="text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+<button
+  onClick={toggleMenu}
+  className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200"
+>                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   {isMenuOpen ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   ) : (
@@ -596,21 +609,80 @@ const Topbar = ({ cartItems = [] }) => {
                     value={searchQuery}
                     onChange={handleSearch}
                     onFocus={() => searchQuery && setShowSearchResults(true)}
-                    className="w-full px-4 py-2 pl-10 pr-4 rounded-lg border border-green-500 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-300"
+                    className="mobile-search-input w-full px-4 py-2 pl-10 pr-4 rounded-lg border border-green-500 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-300 text-sm"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
+                  {searchLoading && (
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                    </div>
+                  )}
+                  
+                  {/* Clear search button for mobile */}
+                  {searchQuery && !searchLoading && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        setShowSearchResults(false);
+                      }}
+                      className="absolute inset-y-0 right-0 pr-10 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
-                {/* Mobile Search Results */}
-                {showSearchResults && searchResults.length > 0 && (
+                {/* Mobile Search Results Dropdown */}
+                {showSearchResults && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto z-50">
-                    {searchResults.map((product) => (
-                      <SearchResultItem key={product._id} product={product} />
-                    ))}
+                    {/* Results Count */}
+                    {searchResults.length > 0 && (
+                      <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+                        <p className="text-xs text-gray-600 font-medium">
+                          Found {searchResults.length} product{searchResults.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Search Results */}
+                    <div className="max-h-48 overflow-y-auto">
+                      {searchResults.map((product) => (
+                        <SearchResultItem key={product._id} product={product} />
+                      ))}
+                    </div>
+
+                    {/* Loading State */}
+                    {searchLoading && (
+                      <div className="p-4 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                          <span className="text-xs text-gray-600">Searching products...</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* No Results Message */}
+                    {!searchLoading && searchQuery && searchResults.length === 0 && (
+                      <div className="p-4 text-center">
+                        <svg className="h-8 w-8 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-xs text-gray-500 mb-1">
+                          No products found for "<span className="font-medium text-gray-700">"{searchQuery}"</span>"
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Try different keywords
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </form>
@@ -619,8 +691,8 @@ const Topbar = ({ cartItems = [] }) => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isMenuOpen && (
+      {/* Mobile Menu - Only show when menu is open and search is not active */}
+      {isMenuOpen && !searchQuery && (
         <div className="md:hidden bg-white shadow-lg border-t border-gray-100 animate-slide-down">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
