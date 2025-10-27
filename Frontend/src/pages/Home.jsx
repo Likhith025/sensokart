@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
+import { useCart } from '../context/CartContext';
 
 const Home = () => {
+  const { cartItems, addToCart, updateQuantity, totalItems } = useCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [cartItems, setCartItems] = useState([]);
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
   const token = Cookies.get('authToken');
 
@@ -45,120 +46,6 @@ const Home = () => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showAddSubCategory, setShowAddSubCategory] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState('');
-
-  // Cart management with localStorage fallback
-  useEffect(() => {
-    const loadCart = () => {
-      try {
-        // Try cookies first
-        const savedCart = Cookies.get('cart');
-        if (savedCart) {
-          const parsedCart = JSON.parse(savedCart);
-          if (Array.isArray(parsedCart)) {
-            setCartItems(parsedCart);
-            return;
-          }
-        }
-        
-        // Fallback to localStorage
-        const fallbackCart = localStorage.getItem('cart_fallback');
-        if (fallbackCart) {
-          const parsedCart = JSON.parse(fallbackCart);
-          if (Array.isArray(parsedCart)) {
-            setCartItems(parsedCart);
-            // Sync back to cookies if possible
-            try {
-              Cookies.set('cart', JSON.stringify(parsedCart), { expires: 7 });
-            } catch (e) {
-              console.log('Using localStorage for cart storage');
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading cart:', error);
-        setCartItems([]);
-      }
-    };
-
-    loadCart();
-  }, []);
-
-  // Save cart to both cookies and localStorage
-  useEffect(() => {
-    const saveCart = () => {
-      if (cartItems.length > 0) {
-        try {
-          Cookies.set('cart', JSON.stringify(cartItems), { expires: 7 });
-          localStorage.setItem('cart_fallback', JSON.stringify(cartItems));
-        } catch (error) {
-          console.error('Error saving cart:', error);
-          // If cookies fail, use localStorage only
-          localStorage.setItem('cart_fallback', JSON.stringify(cartItems));
-        }
-      } else {
-        Cookies.remove('cart');
-        localStorage.removeItem('cart_fallback');
-      }
-    };
-
-    saveCart();
-  }, [cartItems]);
-
-  // Enhanced addToCart function
-  const addToCart = (product) => {
-    setCartItems((prev) => {
-      const existing = prev.find(item => item._id === product._id);
-      if (existing) {
-        return prev.map(item =>
-          item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      
-      // Include all necessary product data for cart
-      const cartProduct = {
-        _id: product._id,
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        salePrice: product.salePrice,
-        coverPhoto: product.coverPhoto,
-        images: product.images || [],
-        sku: product.sku,
-        brand: product.brand || {},
-        category: product.category || {},
-        subCategory: product.subCategory || {},
-        quantity: 1,
-        stockQuantity: product.quantity || 0
-      };
-      
-      console.log('Adding to cart:', cartProduct);
-      return [...prev, cartProduct];
-    });
-  };
-
-  const updateCartQuantity = (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      setCartItems((prev) => prev.filter(item => item._id !== productId));
-    } else {
-      setCartItems((prev) =>
-        prev.map(item =>
-          item._id === productId ? { ...item, quantity: newQuantity } : item
-        )
-      );
-    }
-  };
-
-  const getCartQuantity = (productId) => {
-    const item = cartItems.find(item => item._id === productId);
-    return item ? item.quantity : 0;
-  };
-
-  // Debug cart function
-  const debugCart = () => {
-    console.log('Current cart items:', cartItems);
-    console.log('Cookies cart:', Cookies.get('cart'));
-    console.log('LocalStorage cart:', localStorage.getItem('cart_fallback'));
-  };
 
   // Fetch products
   const fetchProducts = async () => {
@@ -230,7 +117,6 @@ const Home = () => {
     const { name, value } = e.target;
     setAddFormData({ ...addFormData, [name]: value });
     
-    // Fetch subcategories when category changes
     if (name === 'category') {
       fetchSubCategories(value);
     }
@@ -380,16 +266,19 @@ const Home = () => {
     }
   };
 
+  const getCartQuantity = (productId) => {
+    const item = cartItems.find(item => item._id === productId);
+    return item ? item.quantity : 0;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar cartItems={cartItems} />
-      
       
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16">
         {/* Header Section */}
         <div className="mb-8">
-          {/* Hero Section */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Welcome to Sensokart
@@ -399,7 +288,6 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Admin Add Product Button */}
           {userRole === 'admin' && (
             <div className="text-center mb-6">
               <button
@@ -414,11 +302,10 @@ const Home = () => {
 
         {/* Main Content Area */}
         <div className="flex-1">
-          {/* Cart Summary */}
-          {cartItems.length > 0 && (
+          {totalItems > 0 && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-center">
               <p className="font-medium">
-                You have {cartItems.reduce((sum, item) => sum + item.quantity, 0)} item(s) in your cart.
+                You have {totalItems} item{totalItems !== 1 ? 's' : ''} in your cart.
                 <Link to="/cart" className="ml-2 text-blue-600 hover:text-blue-800 underline">
                   View Cart
                 </Link>
@@ -426,20 +313,17 @@ const Home = () => {
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-center">
               {error}
             </div>
           )}
 
-          {/* Section Title */}
           <div className="mb-6 text-center">
             <h2 className="text-3xl font-bold text-gray-900">Top Products</h2>
             <p className="text-gray-600 mt-2">Discover our latest and most popular products</p>
           </div>
 
-          {/* Loading State */}
           {loading && (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600"></div>
@@ -447,7 +331,6 @@ const Home = () => {
             </div>
           )}
 
-          {/* Products Grid */}
           {!loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.length > 0 ? (
@@ -519,12 +402,11 @@ const Home = () => {
                         </div>
                       </Link>
                       
-                      {/* Cart Controls */}
                       <div className="px-4 pb-4">
                         {cartQuantity > 0 ? (
                           <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
                             <button
-                              onClick={() => updateCartQuantity(product._id, cartQuantity - 1)}
+                              onClick={() => updateQuantity(product._id, cartQuantity - 1)}
                               className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
                             >
                               -
@@ -533,7 +415,7 @@ const Home = () => {
                               {cartQuantity}
                             </span>
                             <button
-                              onClick={() => updateCartQuantity(product._id, cartQuantity + 1)}
+                              onClick={() => updateQuantity(product._id, cartQuantity + 1)}
                               className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
                             >
                               +
@@ -639,7 +521,6 @@ const Home = () => {
                 />
               </div>
 
-              {/* Brand Dropdown with Add */}
               <div>
                 <div className="flex items-center space-x-2">
                   <select name="brand" value={addFormData.brand} onChange={handleAddInputChange} required className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -662,7 +543,6 @@ const Home = () => {
                 )}
               </div>
 
-              {/* Category Dropdown with Add */}
               <div>
                 <div className="flex items-center space-x-2">
                   <select name="category" value={addFormData.category} onChange={handleAddInputChange} required className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -685,7 +565,6 @@ const Home = () => {
                 )}
               </div>
 
-              {/* Subcategory Dropdown with Add */}
               <div>
                 <div className="flex items-center space-x-2">
                   <select name="subCategory" value={addFormData.subCategory} onChange={handleAddInputChange} required className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -711,7 +590,6 @@ const Home = () => {
               <input name="quantity" type="number" value={addFormData.quantity} onChange={handleAddInputChange} placeholder="Quantity" required className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <input name="features" value={addFormData.features} onChange={handleAddInputChange} placeholder="Features (comma separated)" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               
-              {/* Specifications Key-Value Fields */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Specifications</label>
                 {specsFields.map((field, index) => (

@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 
 const enquirySchema = new mongoose.Schema({
+  enquiryNumber: {
+    type: String,
+    unique: true,
+    required: true,
+    trim: true
+  },
   products: [{
     product: {
       type: mongoose.Schema.Types.ObjectId,
@@ -55,6 +61,9 @@ const enquirySchema = new mongoose.Schema({
   },
   responseMessage: {
     type: String
+  },
+  respondedAt: {
+    type: Date
   }
 }, {
   timestamps: true
@@ -66,6 +75,7 @@ enquirySchema.virtual('totalQuantity').get(function() {
 });
 
 // Index for better query performance
+enquirySchema.index({ enquiryNumber: 1 });
 enquirySchema.index({ status: 1, createdAt: -1 });
 enquirySchema.index({ email: 1 });
 enquirySchema.index({ country: 1 });

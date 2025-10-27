@@ -1,95 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
+import { useCart } from '../context/CartContext';
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { cartItems, updateQuantity, removeFromCart, clearCart, cartTotal, totalItems } = useCart();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const loadCart = () => {
-      try {
-        // Try cookies first
-        const savedCart = Cookies.get('cart');
-        if (savedCart) {
-          const parsedCart = JSON.parse(savedCart);
-          if (Array.isArray(parsedCart)) {
-            setCartItems(parsedCart);
-            setLoading(false);
-            return;
-          }
-        }
-        
-        // Fallback to localStorage
-        const fallbackCart = localStorage.getItem('cart_fallback');
-        if (fallbackCart) {
-          const parsedCart = JSON.parse(fallbackCart);
-          if (Array.isArray(parsedCart)) {
-            setCartItems(parsedCart);
-            // Sync back to cookies if possible
-            try {
-              Cookies.set('cart', JSON.stringify(parsedCart), { expires: 7 });
-            } catch (e) {
-              console.log('Using localStorage for cart storage');
-            }
-          }
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading cart:', error);
-        setError('Failed to load cart data');
-        setCartItems([]);
-        setLoading(false);
-      }
-    };
-
-    loadCart();
-  }, []);
-
-  // Save cart to both cookies and localStorage
-  useEffect(() => {
-    const saveCart = () => {
-      if (cartItems.length > 0) {
-        try {
-          Cookies.set('cart', JSON.stringify(cartItems), { expires: 7 });
-          localStorage.setItem('cart_fallback', JSON.stringify(cartItems));
-        } catch (error) {
-          console.error('Error saving cart:', error);
-          // If cookies fail, use localStorage only
-          localStorage.setItem('cart_fallback', JSON.stringify(cartItems));
-        }
-      } else {
-        Cookies.remove('cart');
-        localStorage.removeItem('cart_fallback');
-      }
-    };
-
-    saveCart();
-  }, [cartItems]);
-
-  const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      setCartItems((prev) => prev.filter(item => item._id !== productId));
-    } else {
-      setCartItems((prev) =>
-        prev.map(item =>
-          item._id === productId ? { ...item, quantity: newQuantity } : item
-        )
-      );
-    }
-  };
-
-  const removeFromCart = (productId) => {
-    setCartItems((prev) => prev.filter(item => item._id !== productId));
-  };
-
-  const clearCart = () => {
-    setCartItems([]);
-  };
 
   const formatPrice = (price) => {
     if (!price && price !== 0) return '₹0';
@@ -99,13 +15,6 @@ const Cart = () => {
       maximumFractionDigits: 0
     }).format(price);
   };
-
-  const cartTotal = cartItems.reduce((total, item) => {
-    const price = item.salePrice || item.price || 0;
-    return total + (price * (item.quantity || 1));
-  }, 0);
-
-  const totalItems = cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
   const handleRequestQuote = () => {
     if (cartItems.length === 0) {
@@ -129,45 +38,6 @@ const Cart = () => {
   const handleContinueShopping = () => {
     navigate('/');
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-        <Topbar cartItems={cartItems} />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 md:pt-32 pb-16 text-center">
-          <div className="flex flex-col md:flex-row justify-center items-center h-64 space-y-4 md:space-y-0 md:space-x-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600"></div>
-            <p className="text-lg text-gray-600">Loading cart...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-        <Topbar cartItems={cartItems} />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 md:pt-32 pb-16 text-center">
-          <div className="bg-white rounded-xl shadow-lg p-6 md:p-8 max-w-md mx-auto">
-            <div className="w-16 h-16 md:w-24 md:h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
-              <svg className="w-8 h-8 md:w-12 md:h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 md:mb-4">Error Loading Cart</h1>
-            <p className="text-gray-600 mb-4 md:mb-6 text-sm md:text-base">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 cursor-pointer text-sm md:text-base w-full md:w-auto"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (cartItems.length === 0) {
     return (
@@ -234,7 +104,7 @@ const Cart = () => {
                     />
                     <div className="flex-grow min-w-0">
                       <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1 truncate">{item.name || 'Unnamed Product'}</h3>
-                      <p className="text-xs md:text-sm text-gray-600 mb-1 truncate">SKU: {item.sku || 'N/A'}</p>
+                      <p className="text-xs md:text-sm text-gray-600 Vogtmb-1 truncate">SKU: {item.sku || 'N/A'}</p>
                       {item.brand?.name && (
                         <p className="text-xs md:text-sm text-gray-600 mb-2 truncate">Brand: {item.brand.name}</p>
                       )}
@@ -289,7 +159,7 @@ const Cart = () => {
             </div>
           </div>
 
-          {/* Order Summary - Sticky on mobile */}
+          {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white shadow-xl rounded-xl p-4 md:p-6 sticky bottom-0 md:sticky md:top-32 z-10 border border-gray-200 md:border-none">
               <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-4 md:mb-6">Order Summary</h2>
@@ -311,7 +181,7 @@ const Cart = () => {
               <div className="space-y-2 md:space-y-3">
                 <button
                   onClick={handleRequestQuote}
-                  className="w-full px-4 md:px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-200 shadow-md hover:shadow-lg flex items-center justify-center cursor-pointer text-sm md:text-base"
+                  className="w-full px-4 md:px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 shadow-md hover:shadow-lg flex items-center justify-center cursor-pointer text-sm md:text-base"
                 >
                   <svg className="w-4 h-4 md:w-5 md:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

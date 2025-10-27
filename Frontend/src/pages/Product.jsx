@@ -3,18 +3,16 @@ import { Link, useLocation } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
+import { useCart } from '../context/CartContext';
 
 const Product = () => {
+  const { cartItems, addToCart, updateQuantity, totalItems } = useCart();
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
-  const [cartItems, setCartItems] = useState([]);
-  const location = useLocation();
-  
-  // Filters state - initialize from URL parameters
   const [filters, setFilters] = useState({
     brand: '',
     category: '',
@@ -22,7 +20,6 @@ const Product = () => {
     sortBy: 'createdAt',
     sortOrder: 'desc'
   });
-  
   const [filterLoading, setFilterLoading] = useState(false);
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
@@ -62,90 +59,21 @@ const Product = () => {
   const [showAddSubCategory, setShowAddSubCategory] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState('');
 
-  // Cart management
-  useEffect(() => {
-    const savedCart = Cookies.get('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-  }, []);
-
-  useEffect(() => {
-    Cookies.set('cart', JSON.stringify(cartItems), { expires: 7 });
-  }, [cartItems]);
-
-  const addToCart = (product) => {
-    setCartItems((prev) => {
-      const existing = prev.find(item => item._id === product._id);
-      if (existing) {
-        return prev.map(item =>
-          item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      
-      // Include all necessary product data for cart
-      const cartProduct = {
-        _id: product._id,
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        salePrice: product.salePrice,
-        coverPhoto: product.coverPhoto,
-        images: product.images || [],
-        sku: product.sku,
-        brand: product.brand || {},
-        category: product.category || {},
-        subCategory: product.subCategory || {},
-        quantity: 1,
-        stockQuantity: product.quantity || 0
-      };
-      
-      console.log('Adding to cart:', cartProduct);
-      return [...prev, cartProduct];
-    });
-  };
-
-  const updateCartQuantity = (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      setCartItems((prev) => prev.filter(item => item._id !== productId));
-    } else {
-      setCartItems((prev) =>
-        prev.map(item =>
-          item._id === productId ? { ...item, quantity: newQuantity } : item
-        )
-      );
-    }
-  };
-
-  const getCartQuantity = (productId) => {
-    const item = cartItems.find(item => item._id === productId);
-    return item ? item.quantity : 0;
-  };
-
-  // Debug cart function
-  const debugCart = () => {
-    console.log('Current cart items:', cartItems);
-    console.log('Cookies cart:', Cookies.get('cart'));
-    console.log('LocalStorage cart:', localStorage.getItem('cart_fallback'));
-  };
-
   // Parse URL parameters on component mount and when location changes
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const category = searchParams.get('category') || '';
     const subCategory = searchParams.get('subCategory') || '';
-    const brand = searchParams.get('brand') || ''; // ADDED: Parse brand from URL
+    const brand = searchParams.get('brand') || '';
     
     const newFilters = {
       ...filters,
       category,
       subCategory,
-      brand // ADDED: Include brand in filters
+      brand
     };
     
     setFilters(newFilters);
-    
-    // Fetch products with URL parameters
     fetchProducts(newFilters);
   }, [location.search]);
 
@@ -155,10 +83,7 @@ const Product = () => {
       setFilterLoading(true);
       setError('');
       
-      // Combine current filters with any new filter params
       const currentFilters = { ...filters, ...filterParams };
-      
-      // Remove empty filters
       const cleanFilters = {};
       Object.keys(currentFilters).forEach(key => {
         if (currentFilters[key] !== '') {
@@ -167,7 +92,6 @@ const Product = () => {
       });
       
       const params = new URLSearchParams(cleanFilters);
-      
       console.log('🔄 Fetching products with params:', Object.fromEntries(params));
       
       const response = await fetch(`${API_BASE_URL}/products?${params}`);
@@ -234,7 +158,6 @@ const Product = () => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     
-    // If category changed, reset subcategory and fetch new subcategories
     if (key === 'category') {
       newFilters.subCategory = '';
       if (value) {
@@ -244,7 +167,6 @@ const Product = () => {
       }
     }
     
-    // Update URL parameters when filters change
     const searchParams = new URLSearchParams();
     if (newFilters.brand) searchParams.set('brand', newFilters.brand);
     if (newFilters.category) searchParams.set('category', newFilters.category);
@@ -253,7 +175,6 @@ const Product = () => {
     const newUrl = searchParams.toString() ? `/shop?${searchParams.toString()}` : '/shop';
     window.history.pushState({}, '', newUrl);
     
-    // Apply filters immediately
     fetchProducts(newFilters);
   };
 
@@ -268,9 +189,7 @@ const Product = () => {
     setFilters(resetFilters);
     setSubCategories([]);
     
-    // Clear URL parameters
     window.history.pushState({}, '', '/shop');
-    
     fetchProducts(resetFilters);
   };
 
@@ -280,7 +199,6 @@ const Product = () => {
     setSearchQuery(query);
     if (query.trim() === '') {
       setSearchResults([]);
-      // If search is cleared, show filtered products
       fetchProducts(filters);
       return;
     }
@@ -470,6 +388,11 @@ const Product = () => {
     return activeFilters;
   };
 
+  const getCartQuantity = (productId) => {
+    const item = cartItems.find(item => item._id === productId);
+    return item ? item.quantity : 0;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar cartItems={cartItems} />
@@ -496,7 +419,7 @@ const Product = () => {
             </div>
           </div>
 
-          {/* Active URL Filters Display - UPDATED: Include brand */}
+          {/* Active URL Filters Display */}
           {(filters.brand || filters.category || filters.subCategory) && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h3 className="text-lg font-semibold text-blue-800 mb-2">Active Filters:</h3>
@@ -687,10 +610,13 @@ const Product = () => {
           {/* Main Content Area */}
           <div className="flex-1">
             {/* Cart Summary */}
-            {cartItems.length > 0 && (
+            {totalItems > 0 && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-center">
                 <p className="font-medium">
-                  You have {cartItems.reduce((sum, item) => sum + item.quantity, 0)} item(s) in your cart.
+                  You have {totalItems} item{totalItems !== 1 ? 's' : ''} in your cart.
+                  <Link to="/cart" className="ml-2 text-blue-600 hover:text-blue-800 underline">
+                    View Cart
+                  </Link>
                 </p>
               </div>
             )}
@@ -797,7 +723,7 @@ const Product = () => {
                               <button
                                 onClick={(e) => {
                                   e.preventDefault();
-                                  updateCartQuantity(product._id, cartQuantity - 1);
+                                  updateQuantity(product._id, cartQuantity - 1);
                                 }}
                                 className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
                               >
@@ -809,7 +735,7 @@ const Product = () => {
                               <button
                                 onClick={(e) => {
                                   e.preventDefault();
-                                  updateCartQuantity(product._id, cartQuantity + 1);
+                                  updateQuantity(product._id, cartQuantity + 1);
                                 }}
                                 className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
                               >

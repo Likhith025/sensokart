@@ -18,6 +18,10 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import Brands from './pages/Brands';
 import RequestQuote from './pages/RequestQuote';
 import AdminQuotes from './pages/AdminQuotes';
+import AdminProfile from './pages/AdminProfile';
+import AdminUserManagement from './pages/AdminUserManagment';
+import AdminUsers from './pages/AdminUsers';
+import AdminManagement from './pages/AdminManagement';
 
 const App = () => {
   return (
@@ -35,12 +39,16 @@ const App = () => {
         <Route path="/product/:id" element={<ProductDetail/>} />
         <Route path="/contact" element={<Contact/>} />
         <Route path="/products" element={<Product/>} />
-                <Route path="/shop" element={<Product/>} />
+        <Route path="/shop" element={<Product/>} />
         <Route path="/dropdowns" element={<Dropdowns/>} />
         <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
         <Route path="/brands" element={<Brands/>} />
         <Route path="/requestquote" element={<RequestQuote/>} />
         <Route path="/adminquotes" element={<AdminQuotes/>} />
+{/**      <Route path="/adminprofile" element={<AdminProfile/>} />
+        <Route path="/adminuserm" element={<AdminUserManagement/>} />
+        <Route path="/adminuser" element={<AdminUsers/>} />*/}   
+        <Route path="/adminm" element={<AdminManagement/>} />
 
       </Routes>
       <Footer/>

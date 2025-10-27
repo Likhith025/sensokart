@@ -8,15 +8,46 @@ export const useCart = () => useContext(CartContext);
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
+  // Load cart from localStorage or cookies on mount
   useEffect(() => {
-    const savedCart = Cookies.get('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
+    const loadCart = () => {
+      try {
+        const savedCart = localStorage.getItem('cart_fallback') || Cookies.get('cart');
+        if (savedCart) {
+          const parsedCart = JSON.parse(savedCart);
+          if (Array.isArray(parsedCart)) {
+            console.log('Loaded cart:', parsedCart);
+            setCartItems(parsedCart);
+          } else {
+            console.warn('Parsed cart is not an array:', parsedCart);
+            setCartItems([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error);
+        setCartItems([]);
+      }
+    };
+    loadCart();
   }, []);
 
+  // Save cart to localStorage and cookies whenever cartItems changes
   useEffect(() => {
-    Cookies.set('cart', JSON.stringify(cartItems), { expires: 7 });
+    try {
+      if (cartItems.length > 0) {
+        const cartData = JSON.stringify(cartItems);
+        localStorage.setItem('cart_fallback', cartData);
+        Cookies.set('cart', cartData, { expires: 7 });
+        console.log('Saved cart:', cartItems);
+      } else {
+        localStorage.removeItem('cart_fallback');
+        Cookies.remove('cart');
+        console.log('Cleared cart storage');
+      }
+    } catch (error) {
+      console.error('Error saving cart:', error);
+      localStorage.setItem('cart_fallback', JSON.stringify(cartItems));
+    }
   }, [cartItems]);
 
   const addToCart = (product) => {
@@ -24,37 +55,68 @@ export const CartProvider = ({ children }) => {
       const existing = prev.find(item => item._id === product._id);
       if (existing) {
         return prev.map(item =>
-          item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
+          item._id === product._id ? { ...item, quantity: (item.quantity || 1) + 1 } : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      const cartProduct = {
+        _id: product._id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        salePrice: product.salePrice,
+        coverPhoto: product.coverPhoto,
+        images: product.images || [],
+        sku: product.sku,
+        brand: product.brand || {},
+        category: product.category || {},
+        subCategory: product.subCategory || {},
+        quantity: 1,
+        stockQuantity: product.quantity || 0
+      };
+      console.log('Adding to cart:', cartProduct);
+      return [...prev, cartProduct];
     });
   };
 
   const removeFromCart = (productId) => {
-    setCartItems((prev) => prev.filter(item => item._id !== productId));
+    setCartItems((prev) => {
+      const updated = prev.filter(item => item._id !== productId);
+      console.log('Removed item, new cart:', updated);
+      return updated;
+    });
   };
 
   const updateQuantity = (productId, quantity) => {
-    setCartItems((prev) =>
-      prev.map(item =>
-        item._id === productId ? { ...item, quantity: Math.max(0, quantity) } : item
-      )
-    );
+    if (quantity <= 0) {
+      removeFromCart(productId);
+    } else {
+      setCartItems((prev) => {
+        const updated = prev.map(item =>
+          item._id === productId ? { ...item, quantity } : item
+        );
+        console.log('Updated quantity, new cart:', updated);
+        return updated;
+      });
+    }
   };
 
   const clearCart = () => {
     setCartItems([]);
+    console.log('Cart cleared');
   };
 
   const cartTotal = cartItems.reduce((total, item) => {
-    const price = item.salePrice || item.price;
-    return total + price * item.quantity;
+    const price = item.salePrice || item.price || 0;
+    return total + price * (item.quantity || 1);
   }, 0);
 
+  const totalItems = cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, totalItems }}>
       {children}
     </CartContext.Provider>
   );
 };
+
+export default CartProvider;
