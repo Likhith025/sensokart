@@ -10,9 +10,12 @@ const generateToken = (userId) => {
 // Add new user (with email notification for new admins)
 export const addUser = async (req, res) => {
   try {
+    console.time('addUser');
     const { name, email, phone, role, password } = req.body;
     
+    console.time('hashPassword');
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.timeEnd('hashPassword');
     
     const user = new User({
       name,
@@ -22,24 +25,13 @@ export const addUser = async (req, res) => {
       password: hashedPassword
     });
     
+    console.time('saveUser');
     await user.save();
+    console.timeEnd('saveUser');
     
     const token = generateToken(user._id);
     
-    // Send welcome email if user is an admin
-    if (user.role === 'Admin') {
-      try {
-        const emailResult = await sendNewAdminEmail(user.name, user.email, password);
-        
-        if (!emailResult.success) {
-          console.warn('User created but email notification failed:', emailResult.error);
-        }
-      } catch (emailError) {
-        console.error('Error sending admin welcome email:', emailError);
-        // Don't fail the user creation if email fails
-      }
-    }
-    
+    console.time('sendResponse');
     res.status(201).json({
       message: 'User created successfully',
       token,
@@ -50,16 +42,35 @@ export const addUser = async (req, res) => {
         phone: user.phone,
         role: user.role
       },
-      emailSent: user.role === 'Admin' // Indicate if email was attempted
+      emailSent: user.role === 'Admin'
     });
+    console.timeEnd('sendResponse');
+    
+    if (user.role === 'Admin') {
+      setImmediate(() => {
+        console.time('sendEmail');
+        sendNewAdminEmail(user.name, user.email, password)
+          .then((emailResult) => {
+            if (!emailResult.success) {
+              console.warn('User created but email notification failed:', emailResult.error);
+            }
+            console.timeEnd('sendEmail');
+          })
+          .catch((emailError) => {
+            console.error('Error sending admin welcome email:', emailError);
+            console.timeEnd('sendEmail');
+          });
+      });
+    }
+    console.timeEnd('addUser');
   } catch (error) {
+    console.error('Error in addUser:', error);
     if (error.code === 11000) {
       return res.status(400).json({ error: 'Email already exists' });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 };
-
 // Update user profile (with email notification)
 export const updateProfile = async (req, res) => {
   try {

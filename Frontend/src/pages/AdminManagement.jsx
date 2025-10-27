@@ -26,7 +26,7 @@ const AdminManagement = () => {
     phone: ''
   });
 
-  // Password state (removed currentPassword)
+  // Password state
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
     confirmPassword: ''
@@ -64,7 +64,7 @@ const AdminManagement = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/me`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -92,7 +92,7 @@ const AdminManagement = () => {
   const fetchUsers = async () => {
     try {
       setUsersLoading(true);
-      const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/admin/users`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -115,6 +115,23 @@ const AdminManagement = () => {
     }
   };
 
+  // Helper function for fetch with timeout
+  const fetchWithTimeout = async (url, options, timeout = 10000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(id);
+      return response;
+    } catch (error) {
+      clearTimeout(id);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
+      throw error;
+    }
+  };
+
   // Profile Management Functions
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -123,7 +140,7 @@ const AdminManagement = () => {
       setError('');
       setSuccess('');
 
-      const response = await fetch(`${API_BASE_URL}/user/profile`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/user/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -165,7 +182,7 @@ const AdminManagement = () => {
         throw new Error('New password must be at least 6 characters long');
       }
 
-      const response = await fetch(`${API_BASE_URL}/user/change-password`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/user/change-password`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -204,7 +221,7 @@ const AdminManagement = () => {
       setError('');
       setSuccess('');
 
-      const response = await fetch(`${API_BASE_URL}/user/register`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/user/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -213,6 +230,7 @@ const AdminManagement = () => {
       });
 
       const data = await response.json();
+      console.log('Add user response:', data); // Debug log
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create user');
@@ -226,11 +244,15 @@ const AdminManagement = () => {
         password: '',
         role: 'Admin'
       });
-      setShowAddUser(false);
+      // Delay closing the modal to show the success message
+      setTimeout(() => {
+        setShowAddUser(false);
+        setSuccess(''); // Clear success after closing modal
+      }, 1500); // 1.5 seconds delay
       await fetchUsers();
     } catch (err) {
       console.error('Error creating user:', err);
-      setError(err.message);
+      setError(err.message || 'An unexpected error occurred');
     } finally {
       setActionLoading(null);
     }
@@ -243,7 +265,7 @@ const AdminManagement = () => {
       setError('');
       setSuccess('');
 
-      const response = await fetch(`${API_BASE_URL}/admin/users/${selectedUser.id}/edit`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/admin/users/${selectedUser.id}/edit`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -278,6 +300,8 @@ const AdminManagement = () => {
       role: user.role
     });
     setShowEditUser(true);
+    setError(''); // Clear error when opening edit modal
+    setSuccess(''); // Clear success when opening edit modal
   };
 
   const handleDeleteUser = async (userId, userName) => {
@@ -290,7 +314,7 @@ const AdminManagement = () => {
       setError('');
       setSuccess('');
 
-      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -324,7 +348,7 @@ const AdminManagement = () => {
       setError('');
       setSuccess('');
 
-      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/role`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -476,7 +500,11 @@ const AdminManagement = () => {
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold text-gray-900">Manage Users</h2>
                     <button
-                      onClick={() => setShowAddUser(true)}
+                      onClick={() => {
+                        setShowAddUser(true);
+                        setError(''); // Clear error when opening add user modal
+                        setSuccess(''); // Clear success when opening add user modal
+                      }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 cursor-pointer flex items-center"
                     >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -501,7 +529,11 @@ const AdminManagement = () => {
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
                       <p className="text-gray-500 mb-4">Get started by adding your first user.</p>
                       <button
-                        onClick={() => setShowAddUser(true)}
+                        onClick={() => {
+                          setShowAddUser(true);
+                          setError(''); // Clear error when opening add user modal
+                          setSuccess(''); // Clear success when opening add user modal
+                        }}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
                       >
                         Add New User
@@ -594,7 +626,11 @@ const AdminManagement = () => {
                         <div className="flex justify-between items-center mb-4">
                           <h3 className="text-lg font-medium text-gray-900">Profile Information</h3>
                           <button
-                            onClick={() => setShowProfileForm(true)}
+                            onClick={() => {
+                              setShowProfileForm(true);
+                              setError(''); // Clear error when opening profile form
+                              setSuccess(''); // Clear success when opening profile form
+                            }}
                             className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 cursor-pointer text-sm"
                           >
                             Edit Profile
@@ -645,7 +681,11 @@ const AdminManagement = () => {
                           
                           <div className="pt-4">
                             <button
-                              onClick={() => setShowPasswordForm(true)}
+                              onClick={() => {
+                                setShowPasswordForm(true);
+                                setError(''); // Clear error when opening password form
+                                setSuccess(''); // Clear success when opening password form
+                              }}
                               className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
                             >
                               Change Password
@@ -670,6 +710,7 @@ const AdminManagement = () => {
                     onClick={() => {
                       setShowAddUser(false);
                       setError(''); // Clear error when closing
+                      setSuccess(''); // Clear success when closing
                     }}
                     className="text-gray-400 hover:text-gray-600 transition-colors duration-200 cursor-pointer"
                   >
@@ -682,6 +723,12 @@ const AdminManagement = () => {
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
                     <p className="text-red-700">{error}</p>
+                  </div>
+                )}
+
+                {success && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+                    <p className="text-green-700">{success}</p>
                   </div>
                 )}
 
@@ -763,6 +810,7 @@ const AdminManagement = () => {
                       onClick={() => {
                         setShowAddUser(false);
                         setError(''); // Clear error when canceling
+                        setSuccess(''); // Clear success when canceling
                       }}
                       className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                     >
@@ -792,6 +840,7 @@ const AdminManagement = () => {
                       setShowEditUser(false);
                       setSelectedUser(null);
                       setError(''); // Clear error when closing
+                      setSuccess(''); // Clear success when closing
                     }}
                     className="text-gray-400 hover:text-gray-600 transition-colors duration-200 cursor-pointer"
                   >
@@ -804,6 +853,12 @@ const AdminManagement = () => {
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
                     <p className="text-red-700">{error}</p>
+                  </div>
+                )}
+
+                {success && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+                    <p className="text-green-700">{success}</p>
                   </div>
                 )}
 
@@ -858,6 +913,7 @@ const AdminManagement = () => {
                         setShowEditUser(false);
                         setSelectedUser(null);
                         setError(''); // Clear error when canceling
+                        setSuccess(''); // Clear success when canceling
                       }}
                       className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                     >
@@ -886,6 +942,7 @@ const AdminManagement = () => {
                     onClick={() => {
                       setShowProfileForm(false);
                       setError(''); // Clear error when closing
+                      setSuccess(''); // Clear success when closing
                     }}
                     className="text-gray-400 hover:text-gray-600 transition-colors duration-200 cursor-pointer"
                   >
@@ -898,6 +955,12 @@ const AdminManagement = () => {
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
                     <p className="text-red-700">{error}</p>
+                  </div>
+                )}
+
+                {success && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+                    <p className="text-green-700">{success}</p>
                   </div>
                 )}
 
@@ -949,6 +1012,7 @@ const AdminManagement = () => {
                       onClick={() => {
                         setShowProfileForm(false);
                         setError(''); // Clear error when canceling
+                        setSuccess(''); // Clear success when canceling
                       }}
                       className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                     >
@@ -977,6 +1041,7 @@ const AdminManagement = () => {
                     onClick={() => {
                       setShowPasswordForm(false);
                       setError(''); // Clear error when closing
+                      setSuccess(''); // Clear success when closing
                     }}
                     className="text-gray-400 hover:text-gray-600 transition-colors duration-200 cursor-pointer"
                   >
@@ -989,6 +1054,12 @@ const AdminManagement = () => {
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
                     <p className="text-red-700">{error}</p>
+                  </div>
+                )}
+
+                {success && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+                    <p className="text-green-700">{success}</p>
                   </div>
                 )}
 
@@ -1029,6 +1100,7 @@ const AdminManagement = () => {
                       onClick={() => {
                         setShowPasswordForm(false);
                         setError(''); // Clear error when canceling
+                        setSuccess(''); // Clear success when canceling
                       }}
                       className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                     >
