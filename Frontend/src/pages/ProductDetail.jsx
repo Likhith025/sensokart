@@ -317,9 +317,9 @@ const ProductDetail = () => {
     }
   };
 
-  // Image zoom functionality
+  // Image zoom functionality - disable on mobile
   const handleImageMouseMove = (e) => {
-    if (!imageZoom) return;
+    if (!imageZoom || window.innerWidth < 768) return;
 
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - left) / width) * 100;
@@ -541,15 +541,15 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Topbar cartItems={cartItems} />
-        <div className="pt-32">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <div className="pt-20 md:pt-32">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-8 md:pb-16">
             <div className="animate-pulse">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-gray-200 h-96 rounded-lg"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                <div className="bg-gray-200 h-64 md:h-96 rounded-lg"></div>
                 <div className="space-y-4">
-                  <div className="bg-gray-200 h-8 rounded w-3/4"></div>
-                  <div className="bg-gray-200 h-6 rounded w-1/2"></div>
-                  <div className="bg-gray-200 h-20 rounded"></div>
+                  <div className="bg-gray-200 h-6 md:h-8 rounded w-3/4"></div>
+                  <div className="bg-gray-200 h-4 md:h-6 rounded w-1/2"></div>
+                  <div className="bg-gray-200 h-16 md:h-20 rounded"></div>
                 </div>
               </div>
             </div>
@@ -563,14 +563,14 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Topbar cartItems={cartItems} />
-        <div className="pt-32">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 text-center">
-            <div className="bg-white rounded-lg shadow-md p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
-              <p className="text-gray-600 mb-6">{error || 'The product you are looking for does not exist.'}</p>
+        <div className="pt-20 md:pt-32">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-8 md:pb-16 text-center">
+            <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Product Not Found</h2>
+              <p className="text-gray-600 mb-4 md:mb-6 text-sm md:text-base">{error || 'The product you are looking for does not exist.'}</p>
               <Link
                 to="/shop"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
               >
                 Continue Shopping
               </Link>
@@ -589,63 +589,67 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Topbar cartItems={cartItems} />
-      <div className="pt-24">
+      <div className="pt-16 md:pt-24">
+        {/* Breadcrumb Navigation */}
         <nav className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center space-x-2 py-4 text-sm">
-              <Link to="/" className="text-gray-500 hover:text-gray-700 cursor-pointer">Home</Link>
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+            <div className="flex items-center space-x-1 md:space-x-2 py-3 md:py-4 text-xs md:text-sm overflow-x-auto">
+              <Link to="/" className="text-gray-500 hover:text-gray-700 cursor-pointer whitespace-nowrap">Home</Link>
               <span className="text-gray-400">/</span>
-              <Link to="/shop" className="text-gray-500 hover:text-gray-700 cursor-pointer">Shop</Link>
+              <Link to="/shop" className="text-gray-500 hover:text-gray-700 cursor-pointer whitespace-nowrap">Shop</Link>
               <span className="text-gray-400">/</span>
               {product.category && (
                 <>
                   <Link
                     to={`/shop?category=${product.category._id}`}
-                    className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                    className="text-gray-500 hover:text-gray-700 cursor-pointer whitespace-nowrap"
                   >
                     {product.category.name}
                   </Link>
                   <span className="text-gray-400">/</span>
                 </>
               )}
-              <span className="text-gray-900 font-medium">{product.name}</span>
+              <span className="text-gray-900 font-medium whitespace-nowrap truncate max-w-[120px] md:max-w-none">
+                {product.name}
+              </span>
             </div>
           </div>
         </nav>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 md:py-8">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-              <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 p-4 md:p-8">
+              {/* Product Images */}
+              <div className="space-y-3 md:space-y-4">
                 <div
-                  className="relative bg-gray-100 rounded-lg overflow-hidden cursor-zoom-in"
-                  onMouseEnter={() => setImageZoom(true)}
-                  onMouseLeave={() => setImageZoom(false)}
+                  className="relative bg-gray-100 rounded-lg overflow-hidden"
+                  onMouseEnter={() => window.innerWidth >= 768 && setImageZoom(true)}
+                  onMouseLeave={() => window.innerWidth >= 768 && setImageZoom(false)}
                   onMouseMove={handleImageMouseMove}
                 >
                   <img
                     src={selectedImage}
                     alt={product.name}
-                    className="w-full h-96 object-contain transition-transform duration-200"
+                    className="w-full h-48 md:h-96 object-contain transition-transform duration-200"
                     style={{
                       transform: imageZoom ? 'scale(1.5)' : 'scale(1)',
                       transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
                     }}
                   />
                   {hasSale && (
-                    <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    <div className="absolute top-2 md:top-4 left-2 md:left-4 bg-red-500 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-semibold">
                       SALE
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-1 md:gap-2">
                   {[product.coverPhoto, ...product.images].filter(Boolean).map((img, idx) => (
                     <img
                       key={idx}
                       src={img}
                       alt={`${product.name} view ${idx + 1}`}
                       onClick={() => setSelectedImage(img)}
-                      className={`w-full h-20 object-cover rounded-md cursor-pointer border-2 transition-all duration-200 hover:border-blue-400 hover:scale-105 ${
+                      className={`w-full h-12 md:h-20 object-cover rounded-md cursor-pointer border-2 transition-all duration-200 hover:border-blue-400 hover:scale-105 ${
                         selectedImage === img ? 'border-blue-500' : 'border-transparent'
                       }`}
                     />
@@ -653,26 +657,27 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              <div className="space-y-6">
+              {/* Product Details */}
+              <div className="space-y-4 md:space-y-6">
                 <div className="flex justify-between items-center">
                   {userRole === 'admin' && (
                     <button
                       onClick={() => setIsEditMode(!isEditMode)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                      className="px-3 md:px-4 py-1 md:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-xs md:text-sm"
                     >
                       {isEditMode ? 'Cancel Edit' : 'Edit Product'}
                     </button>
                   )}
                   
                   {/* Share Buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 md:gap-2">
                     {/* WhatsApp Share Button */}
                     <button
                       onClick={shareOnWhatsApp}
-                      className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 transform hover:scale-110 cursor-pointer"
+                      className="p-2 md:p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 transform hover:scale-110 cursor-pointer"
                       title="Share on WhatsApp"
                     >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893-.001-3.189-1.262-6.187-3.55-8.444"/>
                       </svg>
                     </button>
@@ -680,10 +685,10 @@ const ProductDetail = () => {
                     {/* Share Button */}
                     <button
                       onClick={handleShare}
-                      className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all duration-200 transform hover:scale-110 cursor-pointer"
+                      className="p-2 md:p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all duration-200 transform hover:scale-110 cursor-pointer"
                       title="Share Product"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                       </svg>
                     </button>
@@ -691,34 +696,34 @@ const ProductDetail = () => {
                 </div>
 
                 {editError && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                    <p className="text-red-700">{editError}</p>
+                  <div className="bg-red-50 border border-red-200 rounded-md p-3 md:p-4">
+                    <p className="text-red-700 text-sm md:text-base">{editError}</p>
                   </div>
                 )}
 
                 {editSuccess && (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                    <p className="text-green-700">{editSuccess}</p>
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3 md:p-4">
+                    <p className="text-green-700 text-sm md:text-base">{editSuccess}</p>
                   </div>
                 )}
 
                 {quoteError && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                    <p className="text-red-700">{quoteError}</p>
+                  <div className="bg-red-50 border border-red-200 rounded-md p-3 md:p-4">
+                    <p className="text-red-700 text-sm md:text-base">{quoteError}</p>
                   </div>
                 )}
 
                 {quoteSuccess && (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                    <p className="text-green-700">{quoteSuccess}</p>
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3 md:p-4">
+                    <p className="text-green-700 text-sm md:text-base">{quoteSuccess}</p>
                   </div>
                 )}
 
                 {isEditMode && userRole === 'admin' ? (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900">Edit Product</h2>
-                    <form onSubmit={handleEditSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4 md:space-y-6">
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Edit Product</h2>
+                    <form onSubmit={handleEditSubmit} className="space-y-4 md:space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
                           <input
@@ -726,7 +731,7 @@ const ProductDetail = () => {
                             name="name"
                             value={editFormData.name}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             required
                           />
                         </div>
@@ -737,7 +742,7 @@ const ProductDetail = () => {
                             name="sku"
                             value={editFormData.sku}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             required
                           />
                         </div>
@@ -748,7 +753,7 @@ const ProductDetail = () => {
                             name="price"
                             value={editFormData.price}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             required
                             step="0.01"
                           />
@@ -760,7 +765,7 @@ const ProductDetail = () => {
                             name="salePrice"
                             value={editFormData.salePrice}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             step="0.01"
                           />
                         </div>
@@ -771,7 +776,7 @@ const ProductDetail = () => {
                             name="quantity"
                             value={editFormData.quantity}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             required
                           />
                         </div>
@@ -782,20 +787,20 @@ const ProductDetail = () => {
                             name="weight"
                             value={editFormData.weight}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             placeholder="e.g., 1 kg"
                           />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Brand *</label>
                           <select
                             name="brand"
                             value={editFormData.brand}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-sm md:text-base"
                             required
                           >
                             <option value="">Select Brand</option>
@@ -810,7 +815,7 @@ const ProductDetail = () => {
                             name="category"
                             value={editFormData.category}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-sm md:text-base"
                             required
                           >
                             <option value="">Select Category</option>
@@ -825,7 +830,7 @@ const ProductDetail = () => {
                             name="subCategory"
                             value={editFormData.subCategory}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-sm md:text-base"
                             required
                           >
                             <option value="">Select Sub Category</option>
@@ -836,7 +841,7 @@ const ProductDetail = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer</label>
                           <input
@@ -844,7 +849,7 @@ const ProductDetail = () => {
                             name="manufacturer"
                             value={editFormData.manufacturer}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                           />
                         </div>
                         <div>
@@ -854,7 +859,7 @@ const ProductDetail = () => {
                             name="modelNo"
                             value={editFormData.modelNo}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                           />
                         </div>
                       </div>
@@ -865,8 +870,8 @@ const ProductDetail = () => {
                           name="description"
                           value={editFormData.description}
                           onChange={handleEditInputChange}
-                          rows="4"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                          rows="3"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                           required
                         />
                       </div>
@@ -878,7 +883,7 @@ const ProductDetail = () => {
                           name="features"
                           value={editFormData.features}
                           onChange={handleEditInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                           placeholder="Feature 1, Feature 2, Feature 3"
                         />
                       </div>
@@ -886,25 +891,25 @@ const ProductDetail = () => {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Specifications</label>
                         {editSpecsFields.map((field, index) => (
-                          <div key={index} className="flex gap-2 mb-2">
+                          <div key={index} className="flex flex-col md:flex-row gap-2 mb-2">
                             <input
                               type="text"
                               value={field.key}
                               onChange={(e) => handleEditSpecsChange(index, 'key', e.target.value)}
                               placeholder="Specification Name"
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             />
                             <input
                               type="text"
                               value={field.value}
                               onChange={(e) => handleEditSpecsChange(index, 'value', e.target.value)}
                               placeholder="Specification Value"
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             />
                             <button
                               type="button"
                               onClick={() => removeEditSpecsField(index)}
-                              className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                              className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                             >
                               Remove
                             </button>
@@ -913,7 +918,7 @@ const ProductDetail = () => {
                         <button
                           type="button"
                           onClick={addEditSpecsField}
-                          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                          className="px-3 md:px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                         >
                           Add Specification
                         </button>
@@ -928,23 +933,23 @@ const ProductDetail = () => {
                               <img
                                 src={product.coverPhoto}
                                 alt="Current Cover"
-                                className="w-32 h-32 object-cover rounded-md"
+                                className="w-20 h-20 md:w-32 md:h-32 object-cover rounded-md"
                               />
                               <button
                                 type="button"
                                 onClick={() => setRemoveCoverPhoto(true)}
-                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-all duration-200 cursor-pointer"
+                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center hover:bg-red-600 transition-all duration-200 cursor-pointer text-xs"
                               >
                                 ×
                               </button>
                             </div>
                           </div>
                         )}
-                        <div className="flex gap-2">
+                        <div className="flex flex-col md:flex-row gap-2">
                           <button
                             type="button"
                             onClick={() => coverPhotoInputRef.current.click()}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                            className="px-3 md:px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                           >
                             {editCoverPhoto ? 'Change Cover Photo' : 'Upload Cover Photo'}
                           </button>
@@ -957,11 +962,11 @@ const ProductDetail = () => {
                           />
                           {editCoverPhoto && (
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">{editCoverPhoto.name}</span>
+                              <span className="text-sm text-gray-600 truncate">{editCoverPhoto.name}</span>
                               <button
                                 type="button"
                                 onClick={removeEditCoverPhoto}
-                                className="text-red-500 hover:text-red-700 cursor-pointer"
+                                className="text-red-500 hover:text-red-700 cursor-pointer text-sm"
                               >
                                 Remove
                               </button>
@@ -973,9 +978,9 @@ const ProductDetail = () => {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Additional Images</label>
                         {product.images && product.images.length > 0 && (
-                          <div className="mb-4">
+                          <div className="mb-3">
                             <p className="text-sm text-gray-600 mb-2">Current Images:</p>
-                            <div className="grid grid-cols-4 gap-2 mb-2">
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-1 md:gap-2 mb-2">
                               {product.images
                                 .filter(img => !imagesToRemove.includes(img))
                                 .map((img, index) => (
@@ -983,12 +988,12 @@ const ProductDetail = () => {
                                     <img
                                       src={img}
                                       alt={`Product ${index + 1}`}
-                                      className="w-20 h-20 object-cover rounded-md"
+                                      className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md"
                                     />
                                     <button
                                       type="button"
                                       onClick={() => removeExistingImage(img)}
-                                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
+                                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
                                     >
                                       ×
                                     </button>
@@ -997,11 +1002,11 @@ const ProductDetail = () => {
                             </div>
                           </div>
                         )}
-                        <div className="flex gap-2">
+                        <div className="flex flex-col md:flex-row gap-2">
                           <button
                             type="button"
                             onClick={() => imagesInputRef.current.click()}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                            className="px-3 md:px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                           >
                             Upload Additional Images
                           </button>
@@ -1017,18 +1022,18 @@ const ProductDetail = () => {
                         {editImages.length > 0 && (
                           <div className="mt-2">
                             <p className="text-sm text-gray-600 mb-1">New Images:</p>
-                            <div className="grid grid-cols-4 gap-2">
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-1 md:gap-2">
                               {editImages.map((img, index) => (
                                 <div key={index} className="relative">
                                   <img
                                     src={URL.createObjectURL(img)}
                                     alt={`New ${index + 1}`}
-                                    className="w-20 h-20 object-cover rounded-md"
+                                    className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => removeEditImage(index)}
-                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
+                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
                                   >
                                     ×
                                   </button>
@@ -1039,18 +1044,18 @@ const ProductDetail = () => {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <button
                           type="submit"
                           disabled={editLoading}
-                          className="py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                          className="py-2 md:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                         >
                           {editLoading ? 'Updating...' : 'Update Product'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setIsEditMode(false)}
-                          className="py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                          className="py-2 md:py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                         >
                           Cancel
                         </button>
@@ -1060,37 +1065,37 @@ const ProductDetail = () => {
                 ) : (
                   <>
                     <div>
-                      <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
+                      <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+                      <div className="flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-4 text-xs md:text-sm text-gray-600 mb-3 md:mb-4">
                         <span>Brand: {product.brand?.name}</span>
-                        <span>•</span>
+                        <span className="hidden md:inline">•</span>
                         <span>SKU: {product.sku}</span>
                         {product.modelNo && (
                           <>
-                            <span>•</span>
+                            <span className="hidden md:inline">•</span>
                             <span>Model: {product.modelNo}</span>
                           </>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4">
-                      <span className="text-3xl font-bold text-gray-900">
+                    <div className="flex items-center space-x-3 md:space-x-4">
+                      <span className="text-2xl md:text-3xl font-bold text-gray-900">
                         {formatPrice(displayPrice)}
                       </span>
                       {hasSale && (
                         <>
-                          <span className="text-xl text-gray-500 line-through">
+                          <span className="text-lg md:text-xl text-gray-500 line-through">
                             {formatPrice(product.price)}
                           </span>
-                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-semibold">
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs md:text-sm font-semibold">
                             Save {formatPrice(product.price - product.salePrice)}
                           </span>
                         </>
                       )}
                     </div>
 
-                    <div className="border-t border-b border-gray-200 py-4">
+                    <div className="border-t border-b border-gray-200 py-3 md:py-4">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-900">Status:</span>
                         <span className={`text-sm font-semibold ${
@@ -1101,34 +1106,34 @@ const ProductDetail = () => {
                       </div>
                     </div>
 
-                    <div className="prose prose-sm text-gray-600">
-                      <p>{product.description}</p>
+                    <div className="prose prose-sm text-gray-600 max-w-none">
+                      <p className="text-sm md:text-base">{product.description}</p>
                     </div>
 
-                    <div className="border-t border-gray-200 pt-6">
-                      <div className="flex items-center space-x-4">
+                    <div className="border-t border-gray-200 pt-4 md:pt-6">
+                      <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
                         {product.quantity > 0 && (
                           <>
-                            <div className="flex items-center border border-gray-300 rounded-md">
+                            <div className="flex items-center border border-gray-300 rounded-md self-start">
                               <button
                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
+                                className="px-3 md:px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
                               >
                                 -
                               </button>
-                              <span className="px-4 py-2 border-l border-r border-gray-300 min-w-12 text-center">
+                              <span className="px-3 md:px-4 py-2 border-l border-r border-gray-300 min-w-8 md:min-w-12 text-center text-sm md:text-base">
                                 {quantity}
                               </span>
                               <button
                                 onClick={() => setQuantity(quantity + 1)}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
+                                className="px-3 md:px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
                               >
                                 +
                               </button>
                             </div>
                             <button
                               onClick={addToCart}
-                              className="flex-1 py-3 px-6 rounded-md font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                              className="py-2 md:py-3 px-4 md:px-6 rounded-md font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                             >
                               Add to Cart
                             </button>
@@ -1136,28 +1141,28 @@ const ProductDetail = () => {
                         )}
                         <button
                           onClick={handleRequestQuote}
-                          className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 hover:border-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
+                          className="py-2 md:py-3 px-4 md:px-6 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 hover:border-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                         >
                           Request Quote
                         </button>
                       </div>
 
                       {cartQuantity > 0 && (
-                        <div className="mt-4 p-4 bg-blue-50 rounded-md">
-                          <div className="flex items-center justify-between">
-                            <span className="text-blue-800">
+                        <div className="mt-3 md:mt-4 p-3 md:p-4 bg-blue-50 rounded-md">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
+                            <span className="text-blue-800 text-sm md:text-base">
                               {cartQuantity} {cartQuantity === 1 ? 'item' : 'items'} in cart
                             </span>
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => updateCartQuantity(product._id, cartQuantity - 1)}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-all duration-200 cursor-pointer"
+                                className="px-2 md:px-3 py-1 bg-blue-600 text-white rounded text-xs md:text-sm hover:bg-blue-700 transition-all duration-200 cursor-pointer"
                               >
                                 -
                               </button>
                               <button
                                 onClick={() => updateCartQuantity(product._id, cartQuantity + 1)}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-all duration-200 cursor-pointer"
+                                className="px-2 md:px-3 py-1 bg-blue-600 text-white rounded text-xs md:text-sm hover:bg-blue-700 transition-all duration-200 cursor-pointer"
                               >
                                 +
                               </button>
@@ -1171,15 +1176,16 @@ const ProductDetail = () => {
               </div>
             </div>
 
+            {/* Product Tabs */}
             <div className="border-t border-gray-200">
               <div className="max-w-4xl mx-auto">
                 <div className="border-b border-gray-200">
-                  <nav className="-mb-px flex space-x-8">
+                  <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto">
                     {['description', 'specification'].map((tab) => (
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition-all duration-200 cursor-pointer ${
+                        className={`py-3 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm capitalize transition-all duration-200 cursor-pointer whitespace-nowrap ${
                           activeTab === tab
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1191,37 +1197,52 @@ const ProductDetail = () => {
                   </nav>
                 </div>
 
-                <div className="py-8">
+                <div className="py-4 md:py-8 px-4 md:px-0">
                   {activeTab === 'description' && (
-                    <div className="prose prose-lg max-w-none">
-                      <div dangerouslySetInnerHTML={{ __html: product.description }} />
+                    <div className="prose prose-sm md:prose-lg max-w-none">
+                      <div className="text-sm md:text-base" dangerouslySetInnerHTML={{ __html: product.description }} />
                     </div>
                   )}
 
                   {activeTab === 'specification' && (
-                    <div className="space-y-6">
-                      <h3 className="text-xl font-semibold">Technical Specifications</h3>
+                    <div className="space-y-4 md:space-y-6">
+                      <h3 className="text-lg md:text-xl font-semibold">Technical Specifications</h3>
                       {specificationsEntries.length > 0 ? (
                         <div className="bg-gray-50 rounded-lg overflow-hidden">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <tbody className="divide-y divide-gray-200">
-                              {specificationsEntries.map(([key, value], index) => (
-                                <tr key={index} className={`hover:bg-gray-100 transition-colors duration-150 cursor-default ${
-                                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                                }`}>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
-                                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-normal text-sm text-gray-600">
-                                    {value}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                          <div className="hidden md:block">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <tbody className="divide-y divide-gray-200">
+                                {specificationsEntries.map(([key, value], index) => (
+                                  <tr key={index} className={`hover:bg-gray-100 transition-colors duration-150 cursor-default ${
+                                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                  }`}>
+                                    <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
+                                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                                    </td>
+                                    <td className="px-4 md:px-6 py-3 md:py-4 whitespace-normal text-sm text-gray-600">
+                                      {value}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {/* Mobile view for specifications */}
+                          <div className="md:hidden space-y-2 p-3">
+                            {specificationsEntries.map(([key, value], index) => (
+                              <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
+                                <div className="font-medium text-gray-900 text-sm capitalize mb-1">
+                                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                                </div>
+                                <div className="text-gray-600 text-sm">
+                                  {value}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ) : (
-                        <p className="text-gray-500">No specifications available.</p>
+                        <p className="text-gray-500 text-sm md:text-base">No specifications available.</p>
                       )}
                     </div>
                   )}
@@ -1230,18 +1251,19 @@ const ProductDetail = () => {
             </div>
           </div>
 
+          {/* Related Products */}
           {relatedProducts.length > 0 && (
-            <div className="mt-12">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Related Products</h2>
+            <div className="mt-8 md:mt-12">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Related Products</h2>
                 <Link
                   to={`/shop?category=${product.category?._id}`}
-                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200 cursor-pointer"
+                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200 cursor-pointer text-sm md:text-base"
                 >
                   View All
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {relatedProducts.map((relatedProduct) => (
                   <div 
                     key={relatedProduct._id} 
@@ -1252,18 +1274,18 @@ const ProductDetail = () => {
                       <img
                         src={relatedProduct.coverPhoto || relatedProduct.images[0]}
                         alt={relatedProduct.name}
-                        className="w-full h-48 object-cover"
+                        className="w-full h-32 md:h-48 object-cover"
                       />
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-blue-600 transition-colors duration-200">
+                    <div className="p-3 md:p-4">
+                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-blue-600 transition-colors duration-200 text-sm md:text-base">
                         {relatedProduct.name}
                       </h3>
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-gray-900">
+                        <span className="text-base md:text-lg font-bold text-gray-900">
                           {formatPrice(relatedProduct.salePrice || relatedProduct.price)}
                         </span>
-                        <button className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors duration-200 cursor-pointer">
+                        <button className="text-blue-600 hover:text-blue-700 font-medium text-xs md:text-sm transition-colors duration-200 cursor-pointer">
                           View Details
                         </button>
                       </div>

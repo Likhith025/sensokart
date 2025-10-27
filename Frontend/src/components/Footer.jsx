@@ -11,7 +11,6 @@ const Footer = () => {
     { name: 'Terms and Conditions', path: '/terms-and-conditions' },
     { name: 'Contact', path: '/contact' },
     { name: 'Careers', path: '/careers' },
-    { name: 'Request a Quote', path: '/request-quote' },
     { name: 'Services', path:'/services'},
     { name: 'Admin', path:'/login'}
   ];
