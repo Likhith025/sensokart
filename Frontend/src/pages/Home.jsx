@@ -292,7 +292,7 @@ const Home = () => {
             <div className="text-center mb-6">
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 shadow-md hover:shadow-lg"
+                className="px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
               >
                 Add New Product
               </button>
@@ -407,7 +407,7 @@ const Home = () => {
                           <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
                             <button
                               onClick={() => updateQuantity(product._id, cartQuantity - 1)}
-                              className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
+                              className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                             >
                               -
                             </button>
@@ -416,7 +416,7 @@ const Home = () => {
                             </span>
                             <button
                               onClick={() => updateQuantity(product._id, cartQuantity + 1)}
-                              className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
+                              className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                             >
                               +
                             </button>
@@ -425,7 +425,7 @@ const Home = () => {
                           <button
                             onClick={() => addToCart(product)}
                             disabled={product.quantity === 0}
-                            className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 ${
+                            className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 cursor-pointer ${
                               product.quantity > 0
                                 ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -443,7 +443,7 @@ const Home = () => {
                   <div className="text-gray-500 text-lg mb-4">No products found</div>
                   <button
                     onClick={fetchProducts}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
                   >
                     Retry
                   </button>
@@ -529,14 +529,14 @@ const Home = () => {
                       <option key={b._id} value={b._id}>{b.name}</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => setShowAddBrand(!showAddBrand)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300">
+                  <button type="button" onClick={() => setShowAddBrand(!showAddBrand)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
                     +
                   </button>
                 </div>
                 {showAddBrand && (
                   <div className="mt-2 flex space-x-2">
                     <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="New Brand Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddBrand} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button type="button" onClick={handleAddBrand} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
                       Add
                     </button>
                   </div>
@@ -551,14 +551,14 @@ const Home = () => {
                       <option key={c._id} value={c._id}>{c.name}</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300">
+                  <button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
                     +
                   </button>
                 </div>
                 {showAddCategory && (
                   <div className="mt-2 flex space-x-2">
                     <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="New Category Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button type="button" onClick={handleAddCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
                       Add
                     </button>
                   </div>
@@ -573,14 +573,14 @@ const Home = () => {
                       <option key={s._id} value={s._id}>{s.name}</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => setShowAddSubCategory(!showAddSubCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300">
+                  <button type="button" onClick={() => setShowAddSubCategory(!showAddSubCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
                     +
                   </button>
                 </div>
                 {showAddSubCategory && (
                   <div className="mt-2 flex space-x-2">
                     <input value={newSubCategoryName} onChange={(e) => setNewSubCategoryName(e.target.value)} placeholder="New Subcategory Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddSubCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button type="button" onClick={handleAddSubCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
                       Add
                     </button>
                   </div>
@@ -606,12 +606,12 @@ const Home = () => {
                       placeholder="Value"
                       className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <button type="button" onClick={() => removeSpecsField(index)} className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                    <button type="button" onClick={() => removeSpecsField(index)} className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 cursor-pointer">
                       X
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={addSpecsField} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <button type="button" onClick={addSpecsField} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
                   Add Field
                 </button>
               </div>
@@ -630,14 +630,14 @@ const Home = () => {
                 <button 
                   type="submit" 
                   disabled={addLoading}
-                  className="flex-1 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="flex-1 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   {addLoading ? 'Adding Product...' : 'Add Product'}
                 </button>
                 <button 
                   type="button" 
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition-colors"
+                  className="flex-1 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

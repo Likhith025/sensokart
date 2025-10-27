@@ -1,6 +1,6 @@
 import express from 'express';
 import { addUser, loginUser, getMe,   updateProfile, 
-  changePassword , getUsers, deleteUser, updateUserRole, toggleUserStatus, updateUser
+  changePassword , getUsers, deleteUser, updateUserRole, toggleUserStatus, updateUser, changePasswordu
  } from '../controllers/userController.js';
 import { protect, protectAdmin } from '../middlewares/auth.js';
 import { uploadProductImages as uploadMiddleware } from '../middlewares/upload.js';
@@ -77,7 +77,9 @@ router.post('/login', loginUser);
 router.get('/me', protectAdmin, getMe);
 
 router.put('/user/profile', protect, updateProfile);
-router.put('/user/change-password', protect, changePassword);
+router.put('/user/change-pass', protect, changePassword);
+router.put('/user/change-password', protect, changePasswordu);
+
 
 router.get('/admin/users', protectAdmin, getUsers);
 router.delete('/admin/users/:id', protectAdmin, deleteUser);

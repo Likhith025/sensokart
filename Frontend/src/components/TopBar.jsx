@@ -333,7 +333,7 @@ const Topbar = ({ cartItems = [] }) => {
                         setSearchResults([]);
                         setShowSearchResults(false);
                       }}
-                      className="absolute inset-y-0 right-0 pr-10 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      className="absolute inset-y-0 right-0 pr-10 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200 cursor-pointer"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -407,9 +407,9 @@ const Topbar = ({ cartItems = [] }) => {
                 )}
               </Link>
 
-              {/* Mobile Search Icon - Now opens menu with search */}
+              {/* Mobile Search Icon */}
               <button 
-                className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200"
+                className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 cursor-pointer"
                 onClick={handleMobileSearchClick}
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -417,10 +417,12 @@ const Topbar = ({ cartItems = [] }) => {
                 </svg>
               </button>
 
-<button
-  onClick={toggleMenu}
-  className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200"
->                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={toggleMenu}
+                className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 cursor-pointer"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   {isMenuOpen ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   ) : (
@@ -452,7 +454,7 @@ const Topbar = ({ cartItems = [] }) => {
                 onMouseEnter={() => setShowCategories(true)}
                 onMouseLeave={() => setShowCategories(false)}
               >
-                <button className="hover:text-green-200 px-2 py-1 text-sm font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-green-200 flex items-center">
+                <button className="hover:text-green-200 px-2 py-1 text-sm font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-green-200 flex items-center cursor-pointer">
                   Categories
                   <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -465,24 +467,22 @@ const Topbar = ({ cartItems = [] }) => {
                     <div className="p-4 max-h-[70vh] overflow-y-auto">
                       {categories.map((category) => (
                         <div key={category._id} className="mb-4 last:mb-0">
-                          {/* Category Header - Blue and Bold */}
                           <button
                             onClick={() => handleCategorySelect(category._id, category.name)}
-                            className="w-full text-left mb-2 group"
+                            className="w-full text-left mb-2 group cursor-pointer"
                           >
                             <h3 className="text-blue-600 font-bold text-sm uppercase hover:text-blue-700 group-hover:underline">
                               {category.name}
                             </h3>
                           </button>
                           
-                          {/* Subcategories - Normal font */}
                           {category.subCategories && category.subCategories.length > 0 && (
                             <div className="ml-4 space-y-1">
                               {category.subCategories.map((subCategory) => (
                                 <button
                                   key={subCategory._id}
                                   onClick={() => handleSubCategorySelect(category._id, subCategory._id, subCategory.name)}
-                                  className="w-full text-left block text-gray-700 text-sm hover:text-green-600 hover:bg-gray-50 px-2 py-1 rounded transition-colors duration-150"
+                                  className="w-full text-left block text-gray-700 text-sm hover:text-green-600 hover:bg-gray-50 px-2 py-1 rounded transition-colors duration-150 cursor-pointer"
                                 >
                                   {subCategory.name}
                                 </button>
@@ -502,7 +502,7 @@ const Topbar = ({ cartItems = [] }) => {
                 onMouseEnter={() => setShowBrands(true)}
                 onMouseLeave={() => setShowBrands(false)}
               >
-                <button className="hover:text-green-200 px-2 py-1 text-sm font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-green-200 flex items-center">
+                <button className="hover:text-green-200 px-2 py-1 text-sm font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-green-200 flex items-center cursor-pointer">
                   Brands
                   <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -523,7 +523,7 @@ const Topbar = ({ cartItems = [] }) => {
                           <button
                             key={brand._id}
                             onClick={() => handleBrandSelect(brand._id, brand.name)}
-                            className="w-full text-left block text-gray-700 text-sm hover:text-green-600 hover:bg-gray-50 px-3 py-2 rounded transition-colors duration-150"
+                            className="w-full text-left block text-gray-700 text-sm hover:text-green-600 hover:bg-gray-50 px-3 py-2 rounded transition-colors duration-150 cursor-pointer"
                           >
                             {brand.name}
                           </button>
@@ -556,45 +556,44 @@ const Topbar = ({ cartItems = [] }) => {
 
             {/* Login/Logout on Level 2 */}
             <div className="flex items-center space-x-4">
-              {/* Show Dropdowns, Quote Requests and Logout only for admin */}
               {isLoggedIn && userRole === 'admin' && (
                 <>
-{/* Quote Requests Button */}
-<button 
-  onClick={() => navigate('/adminquotes')}
-  className="cursor-pointer group px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent flex items-center hover:text-green-300 hover:border-green-300 hover:scale-105"
->
-  <svg 
-    className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6" 
-    fill="none" 
-    viewBox="0 0 24 24" 
-    stroke="currentColor"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-  Quote Requests
-</button>
+                  {/* Quote Requests Button */}
+                  <button 
+                    onClick={() => navigate('/adminquotes')}
+                    className="group px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent flex items-center hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
+                  >
+                    <svg 
+                      className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Quote Requests
+                  </button>
 
-{/* Dropdowns Button */}
-<button 
-  onClick={() => navigate('/dropdowns')}
-  className="cursor-pointer px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105"
->
-  Dropdowns
-</button>
+                  {/* Dropdowns Button */}
+                  <button 
+                    onClick={() => navigate('/dropdowns')}
+                    className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
+                  >
+                    Dropdowns
+                  </button>
 
-{/* Admin Management Button */}
-<button 
-  onClick={() => navigate('/adminm')}
-  className="cursor-pointer px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105"
->
-  Admin Management
-</button>
+                  {/* Admin Management Button */}
+                  <button 
+                    onClick={() => navigate('/adminm')}
+                    className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
+                  >
+                    Admin Management
+                  </button>
 
                   {/* Logout Button */}
                   <button
                     onClick={handleLogout}
-                    className="hover:text-green-200 px-3 py-1 text-sm font-medium transition-colors duration-200 flex items-center border-b-2 border-transparent hover:border-green-200"
+                    className="hover:text-green-200 px-3 py-1 text-sm font-medium transition-colors duration-200 flex items-center border-b-2 border-transparent hover:border-green-200 cursor-pointer"
                   >
                     <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -604,7 +603,7 @@ const Topbar = ({ cartItems = [] }) => {
                 </>
               )}
 
-              {/* Show nothing when logged out (as per requirement) */}
+              {/* Show nothing when logged out */}
               {!isLoggedIn && (
                 <div className="w-20"></div>
               )}
@@ -644,7 +643,7 @@ const Topbar = ({ cartItems = [] }) => {
                         setSearchResults([]);
                         setShowSearchResults(false);
                       }}
-                      className="absolute inset-y-0 right-0 pr-10 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      className="absolute inset-y-0 right-0 pr-10 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200 cursor-pointer"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -726,7 +725,7 @@ const Topbar = ({ cartItems = [] }) => {
                       handleCategorySelect(category._id, category.name);
                       setIsMenuOpen(false);
                     }}
-                    className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left"
+                    className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
                   >
                     <span className="font-bold text-blue-600">{category.name}</span>
                   </button>
@@ -739,7 +738,7 @@ const Topbar = ({ cartItems = [] }) => {
                             handleSubCategorySelect(category._id, subCategory._id, subCategory.name);
                             setIsMenuOpen(false);
                           }}
-                          className="text-gray-600 hover:text-green-600 block px-3 py-1 rounded-md text-sm transition-colors duration-200 w-full text-left"
+                          className="text-gray-600 hover:text-green-600 block px-3 py-1 rounded-md text-sm transition-colors duration-200 w-full text-left cursor-pointer"
                         >
                           {subCategory.name}
                         </button>
@@ -760,7 +759,7 @@ const Topbar = ({ cartItems = [] }) => {
                     handleBrandSelect(brand._id, brand.name);
                     setIsMenuOpen(false);
                   }}
-                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left"
+                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
                 >
                   {brand.name}
                 </button>
@@ -800,7 +799,7 @@ const Topbar = ({ cartItems = [] }) => {
                     navigate('/adminquotes');
                     setIsMenuOpen(false);
                   }}
-                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left flex items-center"
+                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left flex items-center cursor-pointer"
                 >
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -814,9 +813,31 @@ const Topbar = ({ cartItems = [] }) => {
                     navigate('/dropdowns');
                     setIsMenuOpen(false);
                   }}
-                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left"
+                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
                 >
                   Dropdowns
+                </button>
+
+                {/* Admin Management in Mobile */}
+                <button
+                  onClick={() => {
+                    navigate('/adminm');
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
+                >
+                  Admin Management
+                </button>
+
+                {/* Logout in Mobile */}
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-gray-800 hover:text-red-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
+                >
+                  Logout
                 </button>
               </div>
             )}
@@ -828,19 +849,6 @@ const Topbar = ({ cartItems = [] }) => {
             >
               Cart ({totalCartQuantity})
             </Link>
-
-            {/* Show Logout only for admin in mobile */}
-            {isLoggedIn && userRole === 'admin' ? (
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setIsMenuOpen(false);
-                }}
-                className="text-gray-800 hover:text-red-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left"
-              >
-                Logout
-              </button>
-            ) : null}
           </div>
         </div>
       )}

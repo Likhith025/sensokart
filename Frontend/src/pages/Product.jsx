@@ -24,6 +24,7 @@ const Product = () => {
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
   const token = Cookies.get('authToken');
+  const location = useLocation();
 
   // Add Product Modal States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -441,7 +442,7 @@ const Product = () => {
                 )}
                 <button
                   onClick={clearFilters}
-                  className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors"
+                  className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors cursor-pointer"
                 >
                   Clear All
                 </button>
@@ -454,7 +455,7 @@ const Product = () => {
             <div className="text-center mb-6">
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 shadow-md hover:shadow-lg"
+                className="px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
               >
                 Add New Product
               </button>
@@ -466,7 +467,7 @@ const Product = () => {
         <div className="lg:hidden mb-4">
           <button
             onClick={() => setShowFilterSidebar(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
@@ -491,7 +492,7 @@ const Product = () => {
               <h3 className="text-xl font-bold text-gray-800">Filters</h3>
               <button
                 onClick={() => setShowFilterSidebar(false)}
-                className="p-2 text-gray-500 hover:text-gray-700"
+                className="p-2 text-gray-500 hover:text-gray-700 cursor-pointer"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -503,7 +504,7 @@ const Product = () => {
               <h3 className="text-xl font-bold text-gray-800 hidden lg:block">Filters</h3>
               <button
                 onClick={clearFilters}
-                className="text-sm text-red-600 hover:text-red-700 font-medium mb-4 lg:mb-0"
+                className="text-sm text-red-600 hover:text-red-700 font-medium mb-4 lg:mb-0 cursor-pointer"
               >
                 Clear All
               </button>
@@ -725,7 +726,7 @@ const Product = () => {
                                   e.preventDefault();
                                   updateQuantity(product._id, cartQuantity - 1);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
+                                className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                               >
                                 -
                               </button>
@@ -737,7 +738,7 @@ const Product = () => {
                                   e.preventDefault();
                                   updateQuantity(product._id, cartQuantity + 1);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200"
+                                className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                               >
                                 +
                               </button>
@@ -749,7 +750,7 @@ const Product = () => {
                                 addToCart(product);
                               }}
                               disabled={product.quantity === 0}
-                              className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 ${
+                              className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 cursor-pointer ${
                                 product.quantity > 0
                                   ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
                                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -767,7 +768,7 @@ const Product = () => {
                     <div className="text-gray-500 text-lg mb-4">No products found</div>
                     <button
                       onClick={clearFilters}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
                     >
                       Clear Filters
                     </button>
@@ -855,14 +856,14 @@ const Product = () => {
                       <option key={b._id} value={b._id}>{b.name}</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => setShowAddBrand(!showAddBrand)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300">
+                  <button type="button" onClick={() => setShowAddBrand(!showAddBrand)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
                     +
                   </button>
                 </div>
                 {showAddBrand && (
                   <div className="mt-2 flex space-x-2">
                     <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="New Brand Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddBrand} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button type="button" onClick={handleAddBrand} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
                       Add
                     </button>
                   </div>
@@ -878,14 +879,14 @@ const Product = () => {
                       <option key={c._id} value={c._id}>{c.name}</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300">
+                  <button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
                     +
                   </button>
                 </div>
                 {showAddCategory && (
                   <div className="mt-2 flex space-x-2">
                     <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="New Category Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button type="button" onClick={handleAddCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
                       Add
                     </button>
                   </div>
@@ -901,14 +902,14 @@ const Product = () => {
                       <option key={s._id} value={s._id}>{s.name}</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => setShowAddSubCategory(!showAddSubCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300">
+                  <button type="button" onClick={() => setShowAddSubCategory(!showAddSubCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
                     +
                   </button>
                 </div>
                 {showAddSubCategory && (
                   <div className="mt-2 flex space-x-2">
                     <input value={newSubCategoryName} onChange={(e) => setNewSubCategoryName(e.target.value)} placeholder="New Subcategory Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddSubCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button type="button" onClick={handleAddSubCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
                       Add
                     </button>
                   </div>
@@ -935,12 +936,12 @@ const Product = () => {
                       placeholder="Value"
                       className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <button type="button" onClick={() => removeSpecsField(index)} className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                    <button type="button" onClick={() => removeSpecsField(index)} className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 cursor-pointer">
                       X
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={addSpecsField} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <button type="button" onClick={addSpecsField} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
                   Add Field
                 </button>
               </div>
@@ -959,14 +960,14 @@ const Product = () => {
                 <button 
                   type="submit" 
                   disabled={addLoading}
-                  className="flex-1 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="flex-1 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   {addLoading ? 'Adding Product...' : 'Add Product'}
                 </button>
                 <button 
                   type="button" 
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition-colors"
+                  className="flex-1 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

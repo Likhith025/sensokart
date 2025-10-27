@@ -181,6 +181,24 @@ const AdminQuotes = () => {
     }
   };
 
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const openQuoteDetails = (quote) => {
     setSelectedQuote(quote);
     setShowModal(true);
@@ -440,7 +458,7 @@ const AdminQuotes = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(quote.createdAt).toLocaleDateString()}
+                          {formatDate(quote.createdAt)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
@@ -508,9 +526,9 @@ const AdminQuotes = () => {
                       {getStatusText(selectedQuote.status)}
                     </span>
                   </p>
-                  <p><strong>Submitted:</strong> {new Date(selectedQuote.createdAt).toLocaleString()}</p>
+                  <p><strong>Submitted:</strong> {formatDateTime(selectedQuote.createdAt)}</p>
                   {selectedQuote.respondedAt && (
-                    <p><strong>Last Response:</strong> {new Date(selectedQuote.respondedAt).toLocaleString()}</p>
+                    <p><strong>Last Response:</strong> {formatDateTime(selectedQuote.respondedAt)}</p>
                   )}
                 </div>
               </div>
