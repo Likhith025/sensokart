@@ -3,7 +3,7 @@ import User from '../models/Users.js'; // Import User model to get admin emails
 
 // Create transporter - Simple approach like OTP file
 export const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,  // Use SSL port instead of 587
     secure: true,  // true for port 465
