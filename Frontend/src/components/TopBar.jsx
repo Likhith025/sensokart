@@ -407,15 +407,17 @@ const Topbar = ({ cartItems = [] }) => {
                 )}
               </Link>
 
-              {/* Mobile Search Icon */}
-              <button 
-                className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 cursor-pointer"
-                onClick={handleMobileSearchClick}
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
+              {/* Mobile Search Icon - Only show when menu is closed */}
+              {!isMenuOpen && (
+                <button 
+                  className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 cursor-pointer"
+                  onClick={handleMobileSearchClick}
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              )}
 
               {/* Mobile Menu Toggle */}
               <button
@@ -698,6 +700,54 @@ const Topbar = ({ cartItems = [] }) => {
                   </div>
                 )}
               </form>
+            </div>
+          )}
+
+          {/* Mobile Admin Options in Green Bar - Show when logged in as admin and menu is NOT open */}
+          {!isMenuOpen && isLoggedIn && userRole === 'admin' && (
+            <div className="md:hidden flex items-center justify-center space-x-2 px-4 py-1 overflow-x-auto">
+              {/* Quote Requests Button */}
+              <button 
+                onClick={() => navigate('/adminquotes')}
+                className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 flex items-center cursor-pointer whitespace-nowrap"
+              >
+                <svg 
+                  className="h-3 w-3 mr-1" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Quotes
+              </button>
+
+              {/* Dropdowns Button */}
+              <button 
+                onClick={() => navigate('/dropdowns')}
+                className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
+              >
+                Dropdowns
+              </button>
+
+              {/* Admin Management Button */}
+              <button 
+                onClick={() => navigate('/adminm')}
+                className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
+              >
+                Admin
+              </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-colors duration-200 flex items-center border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
+              >
+                <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
             </div>
           )}
         </div>
