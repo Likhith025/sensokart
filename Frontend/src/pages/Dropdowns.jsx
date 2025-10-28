@@ -420,30 +420,30 @@ const Dropdowns = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Dropdowns</h1>
-          <p className="text-gray-600">Manage categories, brands, and subcategories for your products</p>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pt-28 sm:pt-32 pb-8 sm:pb-16">
+        <div className="mb-6 sm:mb-8 px-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Manage Dropdowns</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage categories, brands, and subcategories for your products</p>
         </div>
 
         {/* Success/Error Messages */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="mb-4 sm:mb-6 mx-2 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm sm:text-base">
             <div className="flex items-start">
-              <svg className="w-5 h-5 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
               <div>
                 <p className="font-medium">Cannot Delete</p>
-                <p className="text-sm mt-1">{error}</p>
+                <p className="text-xs sm:text-sm mt-1">{error}</p>
               </div>
             </div>
           </div>
         )}
         {success && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+          <div className="mb-4 sm:mb-6 mx-2 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm sm:text-base">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
               {success}
@@ -451,15 +451,15 @@ const Dropdowns = () => {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+        {/* Tabs - Mobile Scrollable */}
+        <div className="mb-6 sm:mb-8 mx-2">
+          <div className="border-b border-gray-200 overflow-x-auto">
+            <nav className="flex space-x-4 sm:space-x-8 min-w-max">
               {['categories', 'brands', 'subcategories'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm capitalize ${
+                  className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm capitalize whitespace-nowrap ${
                     activeTab === tab
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -474,25 +474,25 @@ const Dropdowns = () => {
 
         {/* Categories Tab */}
         {activeTab === 'categories' && (
-          <div className="bg-white shadow-xl rounded-xl p-8 border border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Categories</h2>
+          <div className="bg-white shadow-lg sm:shadow-xl rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 border border-gray-200 mx-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Categories</h2>
             
             {/* Add Category Form */}
-            <form onSubmit={handleAddCategory} className="mb-8 p-6 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
-              <div className="flex space-x-4">
+            <form onSubmit={handleAddCategory} className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-lg">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Add New Category</h3>
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                 <input
                   type="text"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ name: e.target.value })}
                   placeholder="Category Name"
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   required
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
+                  className="px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"
                 >
                   {loading ? 'Adding...' : 'Add Category'}
                 </button>
@@ -501,59 +501,63 @@ const Dropdowns = () => {
 
             {/* Categories List */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Existing Categories ({categories.length})</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+                Existing Categories ({categories.length})
+              </h3>
               {categories.length === 0 ? (
-                <p className="text-gray-500 italic">No categories found. Add your first category above.</p>
+                <p className="text-gray-500 italic text-sm sm:text-base">No categories found. Add your first category above.</p>
               ) : (
-                <div className="grid gap-4">
+                <div className="space-y-3 sm:space-y-4">
                   {categories.map((category) => (
                     <div
                       key={category._id}
-                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
                       {editItem && editItem._id === category._id ? (
-                        <form onSubmit={handleEditCategory} className="flex-1 flex space-x-4">
+                        <form onSubmit={handleEditCategory} className="w-full space-y-3 sm:space-y-0 sm:flex sm:space-x-3">
                           <input
                             type="text"
                             value={editItem.name}
                             onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                             required
                           />
-                          <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
-                          >
-                            {loading ? 'Saving...' : 'Save'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer"
-                          >
-                            Cancel
-                          </button>
+                          <div className="flex space-x-2">
+                            <button
+                              type="submit"
+                              disabled={loading}
+                              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
+                            >
+                              {loading ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </form>
                       ) : (
                         <>
-                          <div className="flex items-center space-x-4">
-                            <span className="text-lg font-medium text-gray-800">{category.name}</span>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                              Subcategories: {subCategories.filter(sub => sub.category?._id === category._id).length}
+                          <div className="flex items-center space-x-3 mb-2 sm:mb-0">
+                            <span className="text-base sm:text-lg font-medium text-gray-800 break-words">{category.name}</span>
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full whitespace-nowrap">
+                              Subs: {subCategories.filter(sub => sub.category?._id === category._id).length}
                             </span>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 self-end sm:self-auto">
                             <button
                               onClick={() => startEdit(category, 'category')}
-                              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer"
+                              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteCategory(category._id)}
                               disabled={loading}
-                              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
+                              className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
                             >
                               {loading ? 'Deleting...' : 'Delete'}
                             </button>
@@ -570,25 +574,25 @@ const Dropdowns = () => {
 
         {/* Brands Tab */}
         {activeTab === 'brands' && (
-          <div className="bg-white shadow-xl rounded-xl p-8 border border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Brands</h2>
+          <div className="bg-white shadow-lg sm:shadow-xl rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 border border-gray-200 mx-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Brands</h2>
             
             {/* Add Brand Form */}
-            <form onSubmit={handleAddBrand} className="mb-8 p-6 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Add New Brand</h3>
-              <div className="flex space-x-4">
+            <form onSubmit={handleAddBrand} className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-lg">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Add New Brand</h3>
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                 <input
                   type="text"
                   value={newBrand.name}
                   onChange={(e) => setNewBrand({ name: e.target.value })}
                   placeholder="Brand Name"
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   required
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
+                  className="px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"
                 >
                   {loading ? 'Adding...' : 'Add Brand'}
                 </button>
@@ -597,56 +601,60 @@ const Dropdowns = () => {
 
             {/* Brands List */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Existing Brands ({brands.length})</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+                Existing Brands ({brands.length})
+              </h3>
               {brands.length === 0 ? (
-                <p className="text-gray-500 italic">No brands found. Add your first brand above.</p>
+                <p className="text-gray-500 italic text-sm sm:text-base">No brands found. Add your first brand above.</p>
               ) : (
-                <div className="grid gap-4">
+                <div className="space-y-3 sm:space-y-4">
                   {brands.map((brand) => (
                     <div
                       key={brand._id}
-                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
                       {editItem && editItem._id === brand._id ? (
-                        <form onSubmit={handleEditBrand} className="flex-1 flex space-x-4">
+                        <form onSubmit={handleEditBrand} className="w-full space-y-3 sm:space-y-0 sm:flex sm:space-x-3">
                           <input
                             type="text"
                             value={editItem.name}
                             onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                             required
                           />
-                          <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
-                          >
-                            {loading ? 'Saving...' : 'Save'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer"
-                          >
-                            Cancel
-                          </button>
+                          <div className="flex space-x-2">
+                            <button
+                              type="submit"
+                              disabled={loading}
+                              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
+                            >
+                              {loading ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </form>
                       ) : (
                         <>
-                          <div className="flex items-center space-x-4">
-                            <span className="text-lg font-medium text-gray-800">{brand.name}</span>
+                          <div className="mb-2 sm:mb-0">
+                            <span className="text-base sm:text-lg font-medium text-gray-800 break-words">{brand.name}</span>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 self-end sm:self-auto">
                             <button
                               onClick={() => startEdit(brand, 'brand')}
-                              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer"
+                              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteBrand(brand._id)}
                               disabled={loading}
-                              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
+                              className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
                             >
                               {loading ? 'Deleting...' : 'Delete'}
                             </button>
@@ -663,25 +671,25 @@ const Dropdowns = () => {
 
         {/* SubCategories Tab */}
         {activeTab === 'subcategories' && (
-          <div className="bg-white shadow-xl rounded-xl p-8 border border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Subcategories</h2>
+          <div className="bg-white shadow-lg sm:shadow-xl rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 border border-gray-200 mx-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Subcategories</h2>
             
             {/* Add SubCategory Form */}
-            <form onSubmit={handleAddSubCategory} className="mb-8 p-6 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Add New Subcategory</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <form onSubmit={handleAddSubCategory} className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-lg">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Add New Subcategory</h3>
+              <div className="space-y-3 sm:space-y-4 mb-4">
                 <input
                   type="text"
                   value={newSubCategory.name}
                   onChange={(e) => setNewSubCategory({ ...newSubCategory, name: e.target.value })}
                   placeholder="Subcategory Name"
-                  className="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   required
                 />
                 <select
                   value={newSubCategory.category}
                   onChange={(e) => setNewSubCategory({ ...newSubCategory, category: e.target.value })}
-                  className="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   required
                 >
                   <option value="">Select Category</option>
@@ -695,7 +703,7 @@ const Dropdowns = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 {loading ? 'Adding...' : 'Add Subcategory'}
               </button>
@@ -703,50 +711,54 @@ const Dropdowns = () => {
 
             {/* SubCategories List */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Existing Subcategories ({subCategories.length})</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+                Existing Subcategories ({subCategories.length})
+              </h3>
               {subCategories.length === 0 ? (
-                <p className="text-gray-500 italic">No subcategories found. Add your first subcategory above.</p>
+                <p className="text-gray-500 italic text-sm sm:text-base">No subcategories found. Add your first subcategory above.</p>
               ) : (
-                <div className="grid gap-4">
+                <div className="space-y-3 sm:space-y-4">
                   {subCategories.map((subCategory) => (
                     <div
                       key={subCategory._id}
-                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
                       {editItem && editItem._id === subCategory._id ? (
-                        <form onSubmit={handleEditSubCategory} className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <input
-                            type="text"
-                            value={editItem.name}
-                            onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                            className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                          />
-                          <select
-                            value={editItem.category}
-                            onChange={(e) => setEditItem({ ...editItem, category: e.target.value })}
-                            className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                          >
-                            <option value="">Select Category</option>
-                            {categories.map((category) => (
-                              <option key={category._id} value={category._id}>
-                                {category.name}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="md:col-span-2 flex space-x-2">
+                        <form onSubmit={handleEditSubCategory} className="w-full space-y-3">
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={editItem.name}
+                              onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
+                              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                              required
+                            />
+                            <select
+                              value={editItem.category}
+                              onChange={(e) => setEditItem({ ...editItem, category: e.target.value })}
+                              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                              required
+                            >
+                              <option value="">Select Category</option>
+                              {categories.map((category) => (
+                                <option key={category._id} value={category._id}>
+                                  {category.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex space-x-2">
                             <button
                               type="submit"
                               disabled={loading}
-                              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
+                              className="flex-1 px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
                             >
                               {loading ? 'Saving...' : 'Save'}
                             </button>
                             <button
                               type="button"
                               onClick={cancelEdit}
-                              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer"
+                              className="flex-1 px-3 sm:px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
                             >
                               Cancel
                             </button>
@@ -754,23 +766,23 @@ const Dropdowns = () => {
                         </form>
                       ) : (
                         <>
-                          <div>
-                            <span className="text-lg font-medium text-gray-800">{subCategory.name}</span>
-                            <p className="text-sm text-gray-600">
+                          <div className="mb-2 sm:mb-0 flex-1">
+                            <span className="text-base sm:text-lg font-medium text-gray-800 block break-words">{subCategory.name}</span>
+                            <p className="text-sm text-gray-600 mt-1">
                               Category: {subCategory.category?.name || 'Unknown'}
                             </p>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 self-end sm:self-auto">
                             <button
                               onClick={() => startEdit(subCategory, 'subcategory')}
-                              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer"
+                              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteSubCategory(subCategory._id)}
                               disabled={loading}
-                              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed"
+                              className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
                             >
                               {loading ? 'Deleting...' : 'Delete'}
                             </button>
