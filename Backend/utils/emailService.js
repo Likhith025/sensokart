@@ -3,23 +3,16 @@ import User from '../models/Users.js'; // Import User model to get admin emails
 
 // Create transporter - Simple approach like OTP file
 export const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,  // Use SSL port instead of 587
-    secure: true,  // true for port 465
+  return nodemailer.createTransporter({
+    service: "gmail", // Let nodemailer handle the configuration
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
-    },
-    // Render-specific settings
-    connectionTimeout: 30000, // Increase timeout
-    socketTimeout: 30000,
-    greetingTimeout: 10000,
-    tls: {
-      rejectUnauthorized: false // Important for Render
     }
+    // No custom timeouts or TLS settings
   });
 };
+
 // Email templates - ALL YOUR ORIGINAL TEMPLATES
 export const emailTemplates = {
   newAdminWelcome: (name, email, password) => ({
@@ -257,7 +250,7 @@ export const sendEmail = async (to, subject, html) => {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully:', result.messageId);
+    console.log('✅ Email sent successfully');
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('❌ Error sending email:', error);
@@ -280,6 +273,7 @@ export const getAdminEmails = async () => {
   }
 };
 
+
 // Send welcome email to new admin
 export const sendNewAdminEmail = async (name, email, password) => {
   const template = emailTemplates.newAdminWelcome(name, email, password);
@@ -298,13 +292,11 @@ export const sendNewQuoteNotification = async (enquiry, products) => {
     const adminEmails = await getAdminEmails();
     
     if (adminEmails.length === 0) {
-      console.warn('No active admin emails found to send quote notification');
+      console.warn('No active admin emails found');
       return { success: false, error: 'No admin emails found' };
     }
 
     const template = emailTemplates.newQuoteNotification(enquiry, products);
-    
-    // Send to all admins
     const result = await sendEmail(adminEmails.join(','), template.subject, template.html);
     
     return result;
