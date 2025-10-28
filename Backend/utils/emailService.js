@@ -3,15 +3,23 @@ import User from '../models/Users.js'; // Import User model to get admin emails
 
 // Create transporter - Simple approach like OTP file
 export const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: "gmail",
+  return nodemailer.createTransporter({
+    host: 'smtp.gmail.com',
+    port: 465,  // Use SSL port instead of 587
+    secure: true,  // true for port 465
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
+    },
+    // Render-specific settings
+    connectionTimeout: 30000, // Increase timeout
+    socketTimeout: 30000,
+    greetingTimeout: 10000,
+    tls: {
+      rejectUnauthorized: false // Important for Render
     }
   });
 };
-
 // Email templates - ALL YOUR ORIGINAL TEMPLATES
 export const emailTemplates = {
   newAdminWelcome: (name, email, password) => ({
