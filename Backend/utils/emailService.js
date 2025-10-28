@@ -2,13 +2,27 @@ import nodemailer from 'nodemailer';
 import User from '../models/Users.js'; // Import User model to get admin emails
 
 // Create transporter
-const createTransporter = () => {
+// Remove NODE_ENV from the debug function
+// Create transporter - SIMPLE VERSION
+export const createTransporter = () => {
+  console.log('Email Config Check:', {
+    user: process.env.EMAIL_USER,
+    hasPass: !!process.env.EMAIL_PASS
+  });
+
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error('❌ EMAIL CREDENTIALS MISSING');
+    throw new Error('Email credentials not configured');
+  }
+
+  // Try this simple configuration first
   return nodemailer.createTransport({
-    service: 'gmail',
+    service: 'gmail', // Just use 'service' instead of host/port
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    // Remove all timeouts and let nodemailer handle it
   });
 };
 
