@@ -31,28 +31,52 @@ export const createEnquiry = async (req, res) => {
   try {
     const { products, name, email, phone, message, country } = req.body;
 
-    // Validate products array
+    // 1. Validate products
     if (!products || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ error: 'At least one product is required' });
     }
 
-    // Generate enquiry number
-    const enquiryNumber = await generateEnquiryNumber();
+    // Validate each product has valid ID and quantity
+    for (const item of products) {
+      if (!item.product || !item.quantity || item.quantity < 1) {
+        return res.status(400).json({ error: 'Each product must have a valid ID and quantity ≥ 1' });
+      }
+    }
 
-    const enquiry = new Enquiry({
-      enquiryNumber,
-      products,
-      name,
-      email,
-      phone,
-      message,
-      status: 'pending',
-      country
-    });
+    let enquiry;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    await enquiry.save();
+    // 2. Retry logic with MAX attempts (prevents infinite recursion)
+    while (attempts < maxAttempts) {
+      try {
+        const enquiryNumber = await generateEnquiryNumber();
 
-    // Populate the enquiry with product data for response
+        enquiry = new Enquiry({
+          enquiryNumber,
+          products,
+          name,
+          email,
+          phone,
+          message,
+          status: 'pending',
+          country
+        });
+
+        await enquiry.save();
+        break; // Success → exit loop
+
+      } catch (saveError) {
+        if (saveError.code === 11000 && saveError.keyPattern?.enquiryNumber) {
+          attempts++;
+          if (attempts >= maxAttempts) throw saveError;
+          continue; // Retry
+        }
+        throw saveError;
+      }
+    }
+
+    // 3. Populate ONCE for response (no need to repopulate manually)
     await enquiry.populate({
       path: 'products.product',
       populate: [
@@ -62,71 +86,54 @@ export const createEnquiry = async (req, res) => {
       ]
     });
 
-    // Get populated products for email
-    const populatedProducts = await Promise.all(
-      products.map(async (item) => {
-        try {
-          const product = await Product.findById(item.product)
-            .populate('brand')
-            .populate('category')
-            .populate('subCategory');
-          
-          return {
-            ...item,
-            productData: product ? {
-              _id: product._id,
-              name: product.name,
-              sku: product.sku,
-              price: product.price,
-              salePrice: product.salePrice,
-              coverPhoto: product.coverPhoto,
-              images: product.images,
-              brand: product.brand,
-              category: product.category,
-              subCategory: product.subCategory
-            } : null
-          };
-        } catch (error) {
-          console.error(`Error populating product ${item.product}:`, error);
-          return {
-            ...item,
-            productData: null
-          };
-        }
-      })
-    );
+    // Extract populated products for email
+    const populatedProducts = enquiry.products.map(item => ({
+      ...item.toObject(),
+      productData: item.product ? {
+        _id: item.product._id,
+        name: item.product.name,
+        sku: item.product.sku,
+        price: item.product.price,
+        salePrice: item.product.salePrice,
+        coverPhoto: item.product.coverPhoto,
+        images: item.product.images,
+        brand: item.product.brand,
+        category: item.product.category,
+        subCategory: item.product.subCategory
+      } : null
+    }));
 
-    // Send email notification to all admins with populated products
+    // 4. Send email (fire-and-forget, but log result)
+    let emailSent = true;
     try {
       const emailResult = await sendNewQuoteNotification(enquiry, populatedProducts);
-      
       if (!emailResult.success) {
-        console.warn('Enquiry created but email notification failed:', emailResult.error);
-      } else {
-        console.log('Quote notification sent successfully to all admins');
+        console.warn('Email failed:', emailResult.error);
+        emailSent = false;
       }
     } catch (emailError) {
-      console.error('Error sending quote notification email:', emailError);
-      // Don't fail the enquiry creation if email fails
+      console.error('Failed to send quote email:', emailError);
+      emailSent = false;
     }
 
+    // 5. Respond
     res.status(201).json({
       message: 'Enquiry submitted successfully',
       enquiry: {
         ...enquiry.toObject(),
         enquiryNumber: enquiry.enquiryNumber
       },
-      emailSent: true // Indicate that email notification was attempted
+      emailSent
     });
+
   } catch (error) {
-    if (error.code === 11000 && error.keyPattern?.enquiryNumber) {
-      // Retry if there's a duplicate enquiry number (race condition)
-      return createEnquiry(req, res);
-    }
-    res.status(500).json({ error: error.message });
+    console.error('createEnquiry error:', error);
+    res.status(500).json({ 
+      error: 'Failed to create enquiry',
+      details: error.message 
+    });
   }
 };
-
 // Get all enquiries with advanced filtering (Admin)
 export const getEnquiries = async (req, res) => {
   try {
