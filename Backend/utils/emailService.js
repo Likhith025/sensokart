@@ -1,17 +1,8 @@
-import nodemailer from 'nodemailer';
-import User from '../models/Users.js'; // Import User model to get admin emails
+import { Resend } from 'resend';
+import User from '../models/Users.js';
 
-// Create transporter - Simple approach like OTP file
-export const createTransporter = () => {
-  return nodemailer.createTransporter({
-    service: "gmail", // Let nodemailer handle the configuration
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-    // No custom timeouts or TLS settings
-  });
-};
+// Initialize Resend client
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email templates - ALL YOUR ORIGINAL TEMPLATES
 export const emailTemplates = {
@@ -237,71 +228,134 @@ export const emailTemplates = {
   }),
 };
 
-// Send email function - Simple approach like OTP file
+// Send email function using Resend with DEBUGGING
 export const sendEmail = async (to, subject, html) => {
   try {
-    const transporter = createTransporter();
-    
-    const mailOptions = {
-      from: `"Sensokart Quotes" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    };
+    console.log('🔍 [DEBUG] Starting sendEmail function');
+    console.log('📧 [DEBUG] Email details:', {
+      to: to,
+      subject: subject,
+      from: "Sensokart <quotes@resend.dev>",
+      apiKeyExists: !!process.env.RESEND_API_KEY,
+      apiKeyPrefix: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 10) + '...' : 'MISSING'
+    });
 
-    const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully');
-    return { success: true, messageId: result.messageId };
+    const toEmails = Array.isArray(to) ? to : [to];
+    console.log('📧 [DEBUG] Processed recipients:', toEmails);
+    
+    console.log('🔄 [DEBUG] Calling Resend API...');
+    const { data, error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL,
+      to: toEmails,
+      subject: subject,
+      html: html,
+      reply_to: process.env.RESEND_REPLY_TO,
+      tags: [{ name: 'category', value: 'transactional' }],
+    });
+
+    if (error) {
+      console.error('❌ [DEBUG] Resend API returned error:', {
+        message: error.message,
+        name: error.name,
+        statusCode: error.statusCode,
+        details: error
+      });
+      return { success: false, error: error.message };
+    }
+
+    console.log('✅ [DEBUG] Resend API success response:', {
+      messageId: data?.id,
+      data: data
+    });
+    console.log('✅ Email sent successfully via Resend');
+    return { success: true, messageId: data?.id };
   } catch (error) {
-    console.error('❌ Error sending email:', error);
+    console.error('💥 [DEBUG] Exception in sendEmail:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return { success: false, error: error.message };
   }
 };
 
-// Get all admin emails
+// Get all admin emails with DEBUGGING
 export const getAdminEmails = async () => {
   try {
+    console.log('🔍 [DEBUG] Fetching admin emails from database');
     const admins = await User.find({ 
       role: 'Admin', 
       isActive: true 
     }).select('email');
     
+    console.log('👥 [DEBUG] Found admins:', {
+      count: admins.length,
+      emails: admins.map(admin => admin.email)
+    });
+    
     return admins.map(admin => admin.email);
   } catch (error) {
-    console.error('Error fetching admin emails:', error);
+    console.error('❌ [DEBUG] Error fetching admin emails:', error);
     return [];
   }
 };
 
-
-// Send welcome email to new admin
+// Send welcome email to new admin with DEBUGGING
 export const sendNewAdminEmail = async (name, email, password) => {
+  console.log('🔍 [DEBUG] Starting sendNewAdminEmail');
+  console.log('👤 [DEBUG] Admin details:', { name, email, passwordLength: password?.length });
+  
   const template = emailTemplates.newAdminWelcome(name, email, password);
-  return await sendEmail(email, template.subject, template.html);
+  const result = await sendEmail(email, template.subject, template.html);
+  
+  console.log('📤 [DEBUG] sendNewAdminEmail result:', result);
+  return result;
 };
 
-// Send profile update notification
+// Send profile update notification with DEBUGGING
 export const sendProfileUpdateEmail = async (name, email, updatedFields) => {
+  console.log('🔍 [DEBUG] Starting sendProfileUpdateEmail');
+  console.log('📝 [DEBUG] Profile update details:', { name, email, updatedFields });
+  
   const template = emailTemplates.profileUpdated(name, updatedFields);
-  return await sendEmail(email, template.subject, template.html);
+  const result = await sendEmail(email, template.subject, template.html);
+  
+  console.log('📤 [DEBUG] sendProfileUpdateEmail result:', result);
+  return result;
 };
 
-// Send new quote notification to all admins
+// Send new quote notification to all admins with DEBUGGING
 export const sendNewQuoteNotification = async (enquiry, products) => {
   try {
+    console.log('🔍 [DEBUG] Starting sendNewQuoteNotification');
+    console.log('📋 [DEBUG] Quote details:', {
+      enquiryNumber: enquiry.enquiryNumber,
+      customerName: enquiry.name,
+      customerEmail: enquiry.email,
+      productCount: products.length,
+      enquiryId: enquiry._id
+    });
+
     const adminEmails = await getAdminEmails();
     
     if (adminEmails.length === 0) {
-      console.warn('No active admin emails found');
+      console.warn('⚠️ [DEBUG] No active admin emails found');
       return { success: false, error: 'No admin emails found' };
     }
 
+    console.log('👥 [DEBUG] Sending to admin emails:', adminEmails);
     const template = emailTemplates.newQuoteNotification(enquiry, products);
-    const result = await sendEmail(adminEmails.join(','), template.subject, template.html);
     
+    console.log('🔄 [DEBUG] Calling sendEmail with quote template');
+    const result = await sendEmail(adminEmails, template.subject, template.html);
+    
+    console.log('📤 [DEBUG] sendNewQuoteNotification final result:', result);
     return result;
   } catch (error) {
-    console.error('Error sending quote notification:', error);
+    console.error('❌ [DEBUG] Error in sendNewQuoteNotification:', {
+      message: error.message,
+      stack: error.stack
+    });
     return { success: false, error: error.message };
   }
 };
