@@ -6,6 +6,11 @@ const productSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  dashedName: { // ADD THIS FIELD
+    type: String,
+    unique: true,
+    sparse: true
+  },
   description: {
     type: String,
     required: true
@@ -76,9 +81,27 @@ const productSchema = new mongoose.Schema({
   sku: {
     type: String,
     unique: true
-  }
+  },
+  tabDescription:{
+    type: String,
+  },
+  pdf:{
+    type:String
+  },
+  pdfOriginalName: {
+    type: String
+  },
 }, {
   timestamps: true
+});
+
+// ADD THIS MIDDLEWARE to automatically generate dashedName
+productSchema.pre('save', function(next) {
+  if (this.isModified('name') || !this.dashedName) {
+    // Simply replace spaces with hyphens, keep original case
+    this.dashedName = this.name.replace(/\s+/g, '-');
+  }
+  next();
 });
 
 export default mongoose.model("Product", productSchema);

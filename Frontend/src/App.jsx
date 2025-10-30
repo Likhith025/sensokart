@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
+import { useState, useEffect } from 'react';
 import Topbar from './components/TopBar'
 import { Routes, Route } from 'react-router-dom';
 import AboutUs from './pages/AboutUs';
@@ -12,6 +13,7 @@ import Home from './pages/Home';
 import Cart from './pages/Cart';
 import ProductDetail from './pages/ProductDetail';
 import Contact from './pages/Contact';
+import ContactEnquiry from './pages/ContactEnquiry'; // Add this import
 import Product from './pages/Product';
 import Dropdowns from './pages/Dropdowns';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -22,6 +24,7 @@ import AdminProfile from './pages/AdminProfile';
 import AdminUserManagement from './pages/AdminUserManagment';
 import AdminUsers from './pages/AdminUsers';
 import AdminManagement from './pages/AdminManagement';
+import AddNewProduct from './pages/AddNewProduct';
 
 // WhatsApp Button Component (inline)
 const WhatsAppButton = () => {
@@ -96,6 +99,7 @@ const App = () => {
         <Route path="/cart" element={<Cart/>} />
         <Route path="/product/:id" element={<ProductDetail/>} />
         <Route path="/contact" element={<Contact/>} />
+        <Route path="/contactenquiry" element={<ContactEnquiry/>} /> {/* Add this route */}
         <Route path="/products" element={<Product/>} />
         <Route path="/shop" element={<Product/>} />
         <Route path="/dropdowns" element={<Dropdowns/>} />
@@ -107,6 +111,7 @@ const App = () => {
         <Route path="/adminuserm" element={<AdminUserManagement/>} />
         <Route path="/adminuser" element={<AdminUsers/>} />*/}   
         <Route path="/adminm" element={<AdminManagement/>} />
+                <Route path="/add" element={<AddNewProduct/>} />
       </Routes>
       <Footer/>
       <WhatsAppButton />

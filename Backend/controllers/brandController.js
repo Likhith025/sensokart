@@ -1,13 +1,15 @@
 import Brand from '../models/Brand.js';
-import Product from '../models/Product.js'; // Import Product model
+import Product from '../models/Product.js';
 
 // Add brand
 export const addBrand = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, descriptionTitle, description } = req.body;
 
     const brand = new Brand({
-      name
+      name,
+      descriptionTitle: descriptionTitle || "",
+      description: description || ""
     });
 
     await brand.save();
@@ -54,11 +56,15 @@ export const getBrandById = async (req, res) => {
 export const updateBrand = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, descriptionTitle, description } = req.body;
 
     const brand = await Brand.findByIdAndUpdate(
       id,
-      { name },
+      { 
+        name, 
+        descriptionTitle: descriptionTitle || "",
+        description: description || "" 
+      },
       { new: true, runValidators: true }
     );
 
@@ -87,7 +93,7 @@ export const deleteBrand = async (req, res) => {
     const productsUsingBrand = await Product.find({ brand: id });
     
     if (productsUsingBrand.length > 0) {
-      const productNames = productsUsingBrand.slice(0, 3).map(p => p.name); // Show first 3 product names
+      const productNames = productsUsingBrand.slice(0, 3).map(p => p.name);
       return res.status(400).json({ 
         error: `Cannot delete brand. It is being used by ${productsUsingBrand.length} product(s).`,
         productCount: productsUsingBrand.length,

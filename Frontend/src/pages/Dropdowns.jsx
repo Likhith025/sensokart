@@ -10,14 +10,19 @@ const Dropdowns = () => {
   const [brands, setBrands] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Form states
-  const [newCategory, setNewCategory] = useState({ name: '' });
-  const [newBrand, setNewBrand] = useState({ name: '' });
-  const [newSubCategory, setNewSubCategory] = useState({ name: '', category: '' });
-  const [editItem, setEditItem] = useState(null);
+  const [newCategory, setNewCategory] = useState({ name: '', descriptionTitle: '', description: '' });
+  const [newBrand, setNewBrand] = useState({ name: '', descriptionTitle: '', description: '' });
+  const [newSubCategory, setNewSubCategory] = useState({ name: '', category: '', descriptionTitle: '', description: '' });
+  
+  // Modal states
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState(''); // 'add', 'edit', or 'delete'
+  const [modalItem, setModalItem] = useState(null);
+  const [modalData, setModalData] = useState({});
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
 
   const token = Cookies.get('authToken');
   const userRole = Cookies.get('userRole')?.toLowerCase();
@@ -31,7 +36,7 @@ const Dropdowns = () => {
       const data = await response.json();
       setCategories(data);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
@@ -45,7 +50,7 @@ const Dropdowns = () => {
       const data = await response.json();
       setBrands(data);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
@@ -59,7 +64,7 @@ const Dropdowns = () => {
       const data = await response.json();
       setSubCategories(data);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
@@ -71,11 +76,149 @@ const Dropdowns = () => {
     fetchSubCategories();
   }, []);
 
+  // Modal functions
+  const openModal = (type, item = null, data = {}) => {
+    setModalType(type);
+    setModalItem(item);
+    setModalData(data);
+    setModalOpen(true);
+    setModalError('');
+    setModalSuccess('');
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalType('');
+    setModalItem(null);
+    setModalData({});
+    setModalError('');
+    setModalSuccess('');
+    // Reset form data
+    setNewCategory({ name: '', descriptionTitle: '', description: '' });
+    setNewBrand({ name: '', descriptionTitle: '', description: '' });
+    setNewSubCategory({ name: '', category: '', descriptionTitle: '', description: '' });
+  };
+
+  const showModalMessage = (type, message) => {
+    if (type === 'error') {
+      setModalError(message);
+      setModalSuccess('');
+    } else {
+      setModalSuccess(message);
+      setModalError('');
+    }
+    setTimeout(() => {
+      setModalError('');
+      setModalSuccess('');
+    }, 3000);
+  };
+
+  // Helper function to render formatted description
+  const renderFormattedDescription = (description) => {
+    if (!description) return null;
+    
+    const lines = description.split('\n');
+    const elements = [];
+    let currentList = [];
+    let inList = false;
+    let listType = null; // 'numbered' or 'bulleted'
+
+    const processCurrentList = () => {
+      if (currentList.length > 0) {
+        if (listType === 'numbered') {
+          elements.push(
+            <ol key={elements.length} className="list-decimal pl-6 space-y-1">
+              {currentList}
+            </ol>
+          );
+        } else {
+          elements.push(
+            <ul key={elements.length} className="list-disc pl-6 space-y-1">
+              {currentList}
+            </ul>
+          );
+        }
+        currentList = [];
+      }
+    };
+
+    const renderFormattedLine = (line, index) => {
+      // Handle bold text with **text**
+      if (line.includes('**')) {
+        const parts = line.split('**');
+        return (
+          <span key={index}>
+            {parts.map((part, i) => 
+              i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+            )}
+          </span>
+        );
+      }
+      return line;
+    };
+
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Handle numbered lists (1., 2., etc.)
+      if (trimmedLine.match(/^\d+\.\s/)) {
+        if (!inList || listType !== 'numbered') {
+          processCurrentList();
+          inList = true;
+          listType = 'numbered';
+        }
+        const content = trimmedLine.replace(/^\d+\.\s/, '');
+        currentList.push(
+          <li key={currentList.length} className="text-sm">
+            {renderFormattedLine(content, index)}
+          </li>
+        );
+      }
+      // Handle bullet points
+      else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        if (!inList || listType !== 'bulleted') {
+          processCurrentList();
+          inList = true;
+          listType = 'bulleted';
+        }
+        const content = trimmedLine.substring(2);
+        currentList.push(
+          <li key={currentList.length} className="text-sm">
+            {renderFormattedLine(content, index)}
+          </li>
+        );
+      }
+      // Regular paragraph
+      else if (trimmedLine) {
+        processCurrentList();
+        inList = false;
+        listType = null;
+        
+        elements.push(
+          <p key={elements.length} className="text-sm mb-1">
+            {renderFormattedLine(trimmedLine, index)}
+          </p>
+        );
+      }
+      // Empty line
+      else if (inList) {
+        processCurrentList();
+        inList = false;
+        listType = null;
+      }
+    });
+
+    // Process any remaining list items
+    processCurrentList();
+
+    return <div className="space-y-1">{elements}</div>;
+  };
+
   // Category handlers
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    if (!newCategory.name.trim()) {
-      setError('Category name is required');
+    if (!modalData.name?.trim()) {
+      showModalMessage('error', 'Category name is required');
       return;
     }
 
@@ -87,7 +230,7 @@ const Dropdowns = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newCategory)
+        body: JSON.stringify(modalData)
       });
 
       const data = await response.json();
@@ -97,11 +240,13 @@ const Dropdowns = () => {
       }
 
       setCategories([...categories, data.category]);
-      setNewCategory({ name: '' });
-      setSuccess('Category added successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showModalMessage('success', 'Category added successfully!');
+      setTimeout(() => {
+        closeModal();
+        fetchCategories();
+      }, 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
@@ -109,20 +254,24 @@ const Dropdowns = () => {
 
   const handleEditCategory = async (e) => {
     e.preventDefault();
-    if (!editItem.name.trim()) {
-      setError('Category name is required');
+    if (!modalData.name?.trim()) {
+      showModalMessage('error', 'Category name is required');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/category/${editItem._id}`, {
+      const response = await fetch(`${API_BASE_URL}/category/${modalItem._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name: editItem.name })
+        body: JSON.stringify({ 
+          name: modalData.name,
+          descriptionTitle: modalData.descriptionTitle || "",
+          description: modalData.description || ""
+        })
       });
 
       const data = await response.json();
@@ -132,24 +281,21 @@ const Dropdowns = () => {
       }
 
       setCategories(categories.map(cat => 
-        cat._id === editItem._id ? data.category : cat
+        cat._id === modalItem._id ? data.category : cat
       ));
-      setEditItem(null);
-      setSuccess('Category updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showModalMessage('success', 'Category updated successfully!');
+      setTimeout(() => closeModal(), 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteCategory = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this category? This will also delete all associated subcategories.')) return;
-
+  const handleDeleteCategory = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/category/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/category/${modalItem._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -159,20 +305,18 @@ const Dropdowns = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Check if it's a "used in products" error
         if (data.productCount > 0) {
           throw new Error(data.message || `Cannot delete category. It is used by ${data.productCount} product(s).`);
         }
         throw new Error(data.error || 'Failed to delete category');
       }
 
-      // Remove category and its subcategories
-      setCategories(categories.filter(cat => cat._id !== id));
-      setSubCategories(subCategories.filter(sub => sub.category?._id !== id));
-      setSuccess('Category and its subcategories deleted successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      setCategories(categories.filter(cat => cat._id !== modalItem._id));
+      setSubCategories(subCategories.filter(sub => sub.category?._id !== modalItem._id));
+      showModalMessage('success', 'Category and its subcategories deleted successfully!');
+      setTimeout(() => closeModal(), 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
@@ -181,8 +325,8 @@ const Dropdowns = () => {
   // Brand handlers
   const handleAddBrand = async (e) => {
     e.preventDefault();
-    if (!newBrand.name.trim()) {
-      setError('Brand name is required');
+    if (!modalData.name?.trim()) {
+      showModalMessage('error', 'Brand name is required');
       return;
     }
 
@@ -194,7 +338,7 @@ const Dropdowns = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newBrand)
+        body: JSON.stringify(modalData)
       });
 
       const data = await response.json();
@@ -204,11 +348,13 @@ const Dropdowns = () => {
       }
 
       setBrands([...brands, data.brand]);
-      setNewBrand({ name: '' });
-      setSuccess('Brand added successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showModalMessage('success', 'Brand added successfully!');
+      setTimeout(() => {
+        closeModal();
+        fetchBrands();
+      }, 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
@@ -216,20 +362,24 @@ const Dropdowns = () => {
 
   const handleEditBrand = async (e) => {
     e.preventDefault();
-    if (!editItem.name.trim()) {
-      setError('Brand name is required');
+    if (!modalData.name?.trim()) {
+      showModalMessage('error', 'Brand name is required');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/brand/${editItem._id}`, {
+      const response = await fetch(`${API_BASE_URL}/brand/${modalItem._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name: editItem.name })
+        body: JSON.stringify({ 
+          name: modalData.name,
+          descriptionTitle: modalData.descriptionTitle || "",
+          description: modalData.description || ""
+        })
       });
 
       const data = await response.json();
@@ -239,24 +389,21 @@ const Dropdowns = () => {
       }
 
       setBrands(brands.map(brand => 
-        brand._id === editItem._id ? data.brand : brand
+        brand._id === modalItem._id ? data.brand : brand
       ));
-      setEditItem(null);
-      setSuccess('Brand updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showModalMessage('success', 'Brand updated successfully!');
+      setTimeout(() => closeModal(), 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteBrand = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this brand?')) return;
-
+  const handleDeleteBrand = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/brand/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/brand/${modalItem._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -266,18 +413,17 @@ const Dropdowns = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Check if it's a "used in products" error
         if (data.productCount > 0) {
           throw new Error(data.message || `Cannot delete brand. It is used by ${data.productCount} product(s).`);
         }
         throw new Error(data.error || 'Failed to delete brand');
       }
 
-      setBrands(brands.filter(brand => brand._id !== id));
-      setSuccess('Brand deleted successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      setBrands(brands.filter(brand => brand._id !== modalItem._id));
+      showModalMessage('success', 'Brand deleted successfully!');
+      setTimeout(() => closeModal(), 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
@@ -286,8 +432,8 @@ const Dropdowns = () => {
   // SubCategory handlers
   const handleAddSubCategory = async (e) => {
     e.preventDefault();
-    if (!newSubCategory.name.trim() || !newSubCategory.category) {
-      setError('Subcategory name and category are required');
+    if (!modalData.name?.trim() || !modalData.category) {
+      showModalMessage('error', 'Subcategory name and category are required');
       return;
     }
 
@@ -299,7 +445,7 @@ const Dropdowns = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newSubCategory)
+        body: JSON.stringify(modalData)
       });
 
       const data = await response.json();
@@ -309,11 +455,13 @@ const Dropdowns = () => {
       }
 
       setSubCategories([...subCategories, data.subCategory]);
-      setNewSubCategory({ name: '', category: '' });
-      setSuccess('Subcategory added successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showModalMessage('success', 'Subcategory added successfully!');
+      setTimeout(() => {
+        closeModal();
+        fetchSubCategories();
+      }, 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
@@ -321,22 +469,24 @@ const Dropdowns = () => {
 
   const handleEditSubCategory = async (e) => {
     e.preventDefault();
-    if (!editItem.name.trim() || !editItem.category) {
-      setError('Subcategory name and category are required');
+    if (!modalData.name?.trim() || !modalData.category) {
+      showModalMessage('error', 'Subcategory name and category are required');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/subcategory/${editItem._id}`, {
+      const response = await fetch(`${API_BASE_URL}/subcategory/${modalItem._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ 
-          name: editItem.name,
-          category: editItem.category
+          name: modalData.name,
+          category: modalData.category,
+          descriptionTitle: modalData.descriptionTitle || "",
+          description: modalData.description || ""
         })
       });
 
@@ -347,24 +497,21 @@ const Dropdowns = () => {
       }
 
       setSubCategories(subCategories.map(sub => 
-        sub._id === editItem._id ? data.subCategory : sub
+        sub._id === modalItem._id ? data.subCategory : sub
       ));
-      setEditItem(null);
-      setSuccess('Subcategory updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showModalMessage('success', 'Subcategory updated successfully!');
+      setTimeout(() => closeModal(), 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteSubCategory = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this subcategory?')) return;
-
+  const handleDeleteSubCategory = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/subcategory/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/subcategory/${modalItem._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -374,29 +521,32 @@ const Dropdowns = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Check if it's a "used in products" error
         if (data.productCount > 0) {
           throw new Error(data.message || `Cannot delete subcategory. It is used by ${data.productCount} product(s).`);
         }
         throw new Error(data.error || 'Failed to delete subcategory');
       }
 
-      setSubCategories(subCategories.filter(sub => sub._id !== id));
-      setSuccess('Subcategory deleted successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      setSubCategories(subCategories.filter(sub => sub._id !== modalItem._id));
+      showModalMessage('success', 'Subcategory deleted successfully!');
+      setTimeout(() => closeModal(), 1500);
     } catch (err) {
-      setError(err.message);
+      showModalMessage('error', err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const startEdit = (item, type) => {
-    setEditItem({ ...item, type });
-  };
-
-  const cancelEdit = () => {
-    setEditItem(null);
+  // Get modal title based on type and item
+  const getModalTitle = () => {
+    if (modalType === 'add') {
+      return `Add New ${modalItem?.type?.charAt(0).toUpperCase() + modalItem?.type?.slice(1) || 'Item'}`;
+    } else if (modalType === 'edit') {
+      return `Edit ${modalItem?.type?.charAt(0).toUpperCase() + modalItem?.type?.slice(1) || 'Item'}`;
+    } else if (modalType === 'delete') {
+      return `Delete ${modalItem?.type?.charAt(0).toUpperCase() + modalItem?.type?.slice(1) || 'Item'}`;
+    }
+    return 'Modal';
   };
 
   if (userRole !== 'admin') {
@@ -418,38 +568,189 @@ const Dropdowns = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className={`min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 ${modalOpen ? 'cursor-pointer' : ''}`}>
       <Topbar />
+      
+      {/* Modal Overlay */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 cursor-pointer">
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {getModalTitle()}
+                </h3>
+                <button
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Messages */}
+              {modalError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  <div className="flex items-start">
+                    <svg className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="font-medium">Error</p>
+                      <p className="text-xs mt-1">{modalError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {modalSuccess && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {modalSuccess}
+                  </div>
+                </div>
+              )}
+
+              {/* Add/Edit Form */}
+              {(modalType === 'add' || modalType === 'edit') && (
+                <form onSubmit={
+                  modalItem?.type === 'category' ? (modalType === 'add' ? handleAddCategory : handleEditCategory) :
+                  modalItem?.type === 'brand' ? (modalType === 'add' ? handleAddBrand : handleEditBrand) :
+                  (modalType === 'add' ? handleAddSubCategory : handleEditSubCategory)
+                } className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={modalData.name || ''}
+                      onChange={(e) => setModalData({ ...modalData, name: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      required
+                    />
+                  </div>
+
+                  {modalItem?.type === 'subcategory' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category *
+                      </label>
+                      <select
+                        value={modalData.category || ''}
+                        onChange={(e) => setModalData({ ...modalData, category: e.target.value })}
+                        className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        required
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map((category) => (
+                          <option key={category._id} value={category._id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description Title
+                    </label>
+                    <input
+                      type="text"
+                      value={modalData.descriptionTitle || ''}
+                      onChange={(e) => setModalData({ ...modalData, descriptionTitle: e.target.value })}
+                      placeholder="Description Title (Optional)"
+                      className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                      <span className="text-xs text-gray-500 ml-2">
+                        Supports lists (1., 2., - item), bold (**text**), and line breaks
+                      </span>
+                    </label>
+                    <textarea
+                      value={modalData.description || ''}
+                      onChange={(e) => setModalData({ ...modalData, description: e.target.value })}
+                      placeholder={`Enter description with formatting:
+• Use 1., 2., etc. for numbered lists
+• Use - or * for bullet points
+• Use **text** for bold text
+• Press Enter for new lines`}
+                      rows="6"
+                      className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none font-mono text-xs"
+                    />
+                  </div>
+
+                  <div className="flex space-x-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed text-sm"
+                    >
+                      {loading ? 'Saving...' : (modalType === 'add' ? 'Add' : 'Save')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      className="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all duration-200 cursor-pointer text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Delete Confirmation */}
+              {modalType === 'delete' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">
+                    Are you sure you want to delete <strong>"{modalItem.name}"</strong>?
+                    {modalItem.type === 'category' && ' This will also delete all associated subcategories.'}
+                  </p>
+                  
+                  <div className="flex space-x-3 pt-2">
+                    <button
+                      onClick={
+                        modalItem.type === 'category' ? handleDeleteCategory :
+                        modalItem.type === 'brand' ? handleDeleteBrand :
+                        handleDeleteSubCategory
+                      }
+                      disabled={loading}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed text-sm"
+                    >
+                      {loading ? 'Deleting...' : 'Delete'}
+                    </button>
+                    <button
+                      onClick={closeModal}
+                      className="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all duration-200 cursor-pointer text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pt-28 sm:pt-32 pb-8 sm:pb-16">
         <div className="mb-6 sm:mb-8 px-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Manage Dropdowns</h1>
           <p className="text-sm sm:text-base text-gray-600">Manage categories, brands, and subcategories for your products</p>
         </div>
-
-        {/* Success/Error Messages */}
-        {error && (
-          <div className="mb-4 sm:mb-6 mx-2 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm sm:text-base">
-            <div className="flex items-start">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <div>
-                <p className="font-medium">Cannot Delete</p>
-                <p className="text-xs sm:text-sm mt-1">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-        {success && (
-          <div className="mb-4 sm:mb-6 mx-2 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm sm:text-base">
-            <div className="flex items-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              {success}
-            </div>
-          </div>
-        )}
 
         {/* Tabs - Mobile Scrollable */}
         <div className="mb-6 sm:mb-8 mx-2">
@@ -459,7 +760,7 @@ const Dropdowns = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm capitalize whitespace-nowrap ${
+                  className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm capitalize whitespace-nowrap cursor-pointer ${
                     activeTab === tab
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -475,29 +776,15 @@ const Dropdowns = () => {
         {/* Categories Tab */}
         {activeTab === 'categories' && (
           <div className="bg-white shadow-lg sm:shadow-xl rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 border border-gray-200 mx-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Categories</h2>
-            
-            {/* Add Category Form */}
-            <form onSubmit={handleAddCategory} className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-lg">
-              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Add New Category</h3>
-              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                <input
-                  type="text"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ name: e.target.value })}
-                  placeholder="Category Name"
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"
-                >
-                  {loading ? 'Adding...' : 'Add Category'}
-                </button>
-              </div>
-            </form>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Categories</h2>
+              <button
+                onClick={() => openModal('add', { type: 'category' }, { name: '', descriptionTitle: '', description: '' })}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm sm:text-base"
+              >
+                + Add Category
+              </button>
+            </div>
 
             {/* Categories List */}
             <div>
@@ -511,59 +798,42 @@ const Dropdowns = () => {
                   {categories.map((category) => (
                     <div
                       key={category._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      className="flex flex-col sm:flex-row sm:items-start justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
-                      {editItem && editItem._id === category._id ? (
-                        <form onSubmit={handleEditCategory} className="w-full space-y-3 sm:space-y-0 sm:flex sm:space-x-3">
-                          <input
-                            type="text"
-                            value={editItem.name}
-                            onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                            required
-                          />
-                          <div className="flex space-x-2">
-                            <button
-                              type="submit"
-                              disabled={loading}
-                              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
-                            >
-                              {loading ? 'Saving...' : 'Save'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEdit}
-                              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
-                            >
-                              Cancel
-                            </button>
+                      <div className="flex-1 mb-3 sm:mb-0">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <span className="text-base sm:text-lg font-medium text-gray-800 break-words">{category.name}</span>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full whitespace-nowrap">
+                            Subs: {subCategories.filter(sub => sub.category?._id === category._id).length}
+                          </span>
+                        </div>
+                        {category.descriptionTitle && (
+                          <h4 className="text-sm font-semibold text-gray-700 mt-2 break-words">{category.descriptionTitle}</h4>
+                        )}
+                        {category.description && (
+                          <div className="text-sm text-gray-600 mt-1 break-words">
+                            {renderFormattedDescription(category.description)}
                           </div>
-                        </form>
-                      ) : (
-                        <>
-                          <div className="flex items-center space-x-3 mb-2 sm:mb-0">
-                            <span className="text-base sm:text-lg font-medium text-gray-800 break-words">{category.name}</span>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full whitespace-nowrap">
-                              Subs: {subCategories.filter(sub => sub.category?._id === category._id).length}
-                            </span>
-                          </div>
-                          <div className="flex space-x-2 self-end sm:self-auto">
-                            <button
-                              onClick={() => startEdit(category, 'category')}
-                              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCategory(category._id)}
-                              disabled={loading}
-                              className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
-                            >
-                              {loading ? 'Deleting...' : 'Delete'}
-                            </button>
-                          </div>
-                        </>
-                      )}
+                        )}
+                      </div>
+                      <div className="flex space-x-2 self-end sm:self-auto">
+                        <button
+                          onClick={() => openModal('edit', { ...category, type: 'category' }, { 
+                            name: category.name, 
+                            descriptionTitle: category.descriptionTitle,
+                            description: category.description 
+                          })}
+                          className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => openModal('delete', { ...category, type: 'category' })}
+                          className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -575,29 +845,15 @@ const Dropdowns = () => {
         {/* Brands Tab */}
         {activeTab === 'brands' && (
           <div className="bg-white shadow-lg sm:shadow-xl rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 border border-gray-200 mx-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Brands</h2>
-            
-            {/* Add Brand Form */}
-            <form onSubmit={handleAddBrand} className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-lg">
-              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Add New Brand</h3>
-              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                <input
-                  type="text"
-                  value={newBrand.name}
-                  onChange={(e) => setNewBrand({ name: e.target.value })}
-                  placeholder="Brand Name"
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"
-                >
-                  {loading ? 'Adding...' : 'Add Brand'}
-                </button>
-              </div>
-            </form>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Brands</h2>
+              <button
+                onClick={() => openModal('add', { type: 'brand' }, { name: '', descriptionTitle: '', description: '' })}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm sm:text-base"
+              >
+                + Add Brand
+              </button>
+            </div>
 
             {/* Brands List */}
             <div>
@@ -611,56 +867,39 @@ const Dropdowns = () => {
                   {brands.map((brand) => (
                     <div
                       key={brand._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      className="flex flex-col sm:flex-row sm:items-start justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
-                      {editItem && editItem._id === brand._id ? (
-                        <form onSubmit={handleEditBrand} className="w-full space-y-3 sm:space-y-0 sm:flex sm:space-x-3">
-                          <input
-                            type="text"
-                            value={editItem.name}
-                            onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                            required
-                          />
-                          <div className="flex space-x-2">
-                            <button
-                              type="submit"
-                              disabled={loading}
-                              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
-                            >
-                              {loading ? 'Saving...' : 'Save'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEdit}
-                              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
-                            >
-                              Cancel
-                            </button>
+                      <div className="flex-1 mb-3 sm:mb-0">
+                        <div className="mb-2">
+                          <span className="text-base sm:text-lg font-medium text-gray-800 break-words">{brand.name}</span>
+                        </div>
+                        {brand.descriptionTitle && (
+                          <h4 className="text-sm font-semibold text-gray-700 mt-2 break-words">{brand.descriptionTitle}</h4>
+                        )}
+                        {brand.description && (
+                          <div className="text-sm text-gray-600 mt-1 break-words">
+                            {renderFormattedDescription(brand.description)}
                           </div>
-                        </form>
-                      ) : (
-                        <>
-                          <div className="mb-2 sm:mb-0">
-                            <span className="text-base sm:text-lg font-medium text-gray-800 break-words">{brand.name}</span>
-                          </div>
-                          <div className="flex space-x-2 self-end sm:self-auto">
-                            <button
-                              onClick={() => startEdit(brand, 'brand')}
-                              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteBrand(brand._id)}
-                              disabled={loading}
-                              className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
-                            >
-                              {loading ? 'Deleting...' : 'Delete'}
-                            </button>
-                          </div>
-                        </>
-                      )}
+                        )}
+                      </div>
+                      <div className="flex space-x-2 self-end sm:self-auto">
+                        <button
+                          onClick={() => openModal('edit', { ...brand, type: 'brand' }, { 
+                            name: brand.name, 
+                            descriptionTitle: brand.descriptionTitle,
+                            description: brand.description 
+                          })}
+                          className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => openModal('delete', { ...brand, type: 'brand' })}
+                          className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -672,42 +911,15 @@ const Dropdowns = () => {
         {/* SubCategories Tab */}
         {activeTab === 'subcategories' && (
           <div className="bg-white shadow-lg sm:shadow-xl rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 border border-gray-200 mx-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Subcategories</h2>
-            
-            {/* Add SubCategory Form */}
-            <form onSubmit={handleAddSubCategory} className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-lg">
-              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Add New Subcategory</h3>
-              <div className="space-y-3 sm:space-y-4 mb-4">
-                <input
-                  type="text"
-                  value={newSubCategory.name}
-                  onChange={(e) => setNewSubCategory({ ...newSubCategory, name: e.target.value })}
-                  placeholder="Subcategory Name"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                  required
-                />
-                <select
-                  value={newSubCategory.category}
-                  onChange={(e) => setNewSubCategory({ ...newSubCategory, category: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                  required
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Subcategories</h2>
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm sm:text-base"
+                onClick={() => openModal('add', { type: 'subcategory' }, { name: '', category: '', descriptionTitle: '', description: '' })}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm sm:text-base"
               >
-                {loading ? 'Adding...' : 'Add Subcategory'}
+                + Add Subcategory
               </button>
-            </form>
+            </div>
 
             {/* SubCategories List */}
             <div>
@@ -721,74 +933,43 @@ const Dropdowns = () => {
                   {subCategories.map((subCategory) => (
                     <div
                       key={subCategory._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      className="flex flex-col sm:flex-row sm:items-start justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
-                      {editItem && editItem._id === subCategory._id ? (
-                        <form onSubmit={handleEditSubCategory} className="w-full space-y-3">
-                          <div className="space-y-2">
-                            <input
-                              type="text"
-                              value={editItem.name}
-                              onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                              required
-                            />
-                            <select
-                              value={editItem.category}
-                              onChange={(e) => setEditItem({ ...editItem, category: e.target.value })}
-                              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                              required
-                            >
-                              <option value="">Select Category</option>
-                              {categories.map((category) => (
-                                <option key={category._id} value={category._id}>
-                                  {category.name}
-                                </option>
-                              ))}
-                            </select>
+                      <div className="flex-1 mb-3 sm:mb-0">
+                        <div className="mb-2">
+                          <span className="text-base sm:text-lg font-medium text-gray-800 block break-words">{subCategory.name}</span>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Category: {subCategory.category?.name || 'Unknown'}
+                          </p>
+                        </div>
+                        {subCategory.descriptionTitle && (
+                          <h4 className="text-sm font-semibold text-gray-700 mt-2 break-words">{subCategory.descriptionTitle}</h4>
+                        )}
+                        {subCategory.description && (
+                          <div className="text-sm text-gray-600 mt-1 break-words">
+                            {renderFormattedDescription(subCategory.description)}
                           </div>
-                          <div className="flex space-x-2">
-                            <button
-                              type="submit"
-                              disabled={loading}
-                              className="flex-1 px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
-                            >
-                              {loading ? 'Saving...' : 'Save'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEdit}
-                              className="flex-1 px-3 sm:px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <>
-                          <div className="mb-2 sm:mb-0 flex-1">
-                            <span className="text-base sm:text-lg font-medium text-gray-800 block break-words">{subCategory.name}</span>
-                            <p className="text-sm text-gray-600 mt-1">
-                              Category: {subCategory.category?.name || 'Unknown'}
-                            </p>
-                          </div>
-                          <div className="flex space-x-2 self-end sm:self-auto">
-                            <button
-                              onClick={() => startEdit(subCategory, 'subcategory')}
-                              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSubCategory(subCategory._id)}
-                              disabled={loading}
-                              className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-all duration-200 hover:shadow-lg cursor-pointer disabled:cursor-not-allowed text-sm"
-                            >
-                              {loading ? 'Deleting...' : 'Delete'}
-                            </button>
-                          </div>
-                        </>
-                      )}
+                        )}
+                      </div>
+                      <div className="flex space-x-2 self-end sm:self-auto">
+                        <button
+                          onClick={() => openModal('edit', { ...subCategory, type: 'subcategory' }, { 
+                            name: subCategory.name, 
+                            category: subCategory.category?._id || subCategory.category,
+                            descriptionTitle: subCategory.descriptionTitle,
+                            description: subCategory.description 
+                          })}
+                          className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => openModal('delete', { ...subCategory, type: 'subcategory' })}
+                          className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-all duration-200 hover:shadow-lg cursor-pointer text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

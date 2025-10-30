@@ -37,7 +37,8 @@ import {
   getProductsByCategory,
   getProductsByBrand,
   getRelatedProducts,
-
+  getProductByName,
+  downloadProductPdf
 } from '../controllers/productController.js';
 
 
@@ -117,6 +118,7 @@ router.get('/products', getProducts);
 router.get('/products/search', searchProducts);
 router.get('/products/category/:categorySlug', getProductsByCategory);
 router.get('/products/brand/:brandId', getProductsByBrand);
+router.get('/products/name/:name', getProductByName); // ← ADD THIS
 router.get('/products/:id/related', getRelatedProducts);
 router.get('/products/:id', getProductById);
 
@@ -125,6 +127,8 @@ router.post('/products/add', protectAdmin, uploadMiddleware, addProduct);
 router.put('/products/:id', protectAdmin, uploadMiddleware, updateProduct);
 router.patch('/products/:id/quantity', protectAdmin, updateQuantity);
 router.delete('/products/:id', protectAdmin, deleteProduct);
+// routes/productRoutes.js
+router.get('/:id/download-pdf', downloadProductPdf);
 
 router.get('/page', getPages);
 router.get('/page/slug/:slug', getPageBySlug);

@@ -1,14 +1,16 @@
 import Category from '../models/Category.js';
 import SubCategory from '../models/SubCategory.js';
-import Product from '../models/Product.js'; // Import Product model
+import Product from '../models/Product.js';
 
 // Add category
 export const addCategory = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, descriptionTitle, description } = req.body;
 
     const category = new Category({
-      name
+      name,
+      descriptionTitle: descriptionTitle || "",
+      description: description || ""
     });
 
     await category.save();
@@ -29,11 +31,15 @@ export const addCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, descriptionTitle, description } = req.body;
 
     const category = await Category.findByIdAndUpdate(
       id,
-      { name },
+      { 
+        name, 
+        descriptionTitle: descriptionTitle || "",
+        description: description || "" 
+      },
       { new: true, runValidators: true }
     );
 
@@ -62,7 +68,7 @@ export const deleteCategory = async (req, res) => {
     const productsUsingCategory = await Product.find({ category: id });
     
     if (productsUsingCategory.length > 0) {
-      const productNames = productsUsingCategory.slice(0, 3).map(p => p.name); // Show first 3 product names
+      const productNames = productsUsingCategory.slice(0, 3).map(p => p.name);
       return res.status(400).json({ 
         error: `Cannot delete category. It is being used by ${productsUsingCategory.length} product(s).`,
         productCount: productsUsingCategory.length,
@@ -91,11 +97,13 @@ export const deleteCategory = async (req, res) => {
 // Add subcategory
 export const addSubCategory = async (req, res) => {
   try {
-    const { name, category } = req.body;
+    const { name, category, descriptionTitle, description } = req.body;
 
     const subCategory = new SubCategory({
       name,
-      category
+      category,
+      descriptionTitle: descriptionTitle || "",
+      description: description || ""
     });
 
     await subCategory.save();
@@ -114,11 +122,16 @@ export const addSubCategory = async (req, res) => {
 export const updateSubCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category } = req.body;
+    const { name, category, descriptionTitle, description } = req.body;
 
     const subCategory = await SubCategory.findByIdAndUpdate(
       id,
-      { name, category },
+      { 
+        name, 
+        category, 
+        descriptionTitle: descriptionTitle || "",
+        description: description || "" 
+      },
       { new: true, runValidators: true }
     ).populate('category');
 
@@ -144,7 +157,7 @@ export const deleteSubCategory = async (req, res) => {
     const productsUsingSubCategory = await Product.find({ subCategory: id });
     
     if (productsUsingSubCategory.length > 0) {
-      const productNames = productsUsingSubCategory.slice(0, 3).map(p => p.name); // Show first 3 product names
+      const productNames = productsUsingSubCategory.slice(0, 3).map(p => p.name);
       return res.status(400).json({ 
         error: `Cannot delete subcategory. It is being used by ${productsUsingSubCategory.length} product(s).`,
         productCount: productsUsingSubCategory.length,

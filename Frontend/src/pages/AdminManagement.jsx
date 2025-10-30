@@ -799,8 +799,7 @@ const AdminManagement = () => {
                       onChange={handleNewUserChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="Admin">Administrator</option>
-                      <option value="User">Regular User</option>
+                      <option value="Admin">Admin</option>
                     </select>
                   </div>
 
@@ -901,8 +900,7 @@ const AdminManagement = () => {
                       onChange={handleEditUserChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="Admin">Administrator</option>
-                      <option value="User">Regular User</option>
+                      <option value="Admin">Admin</option>
                     </select>
                   </div>
 

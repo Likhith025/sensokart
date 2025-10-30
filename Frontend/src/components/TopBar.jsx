@@ -583,49 +583,65 @@ const Topbar = ({ cartItems = [] }) => {
 
             {/* Right side - Admin options OR Contact info */}
             <div className="flex items-center space-x-6">
-              {isLoggedIn && userRole === 'admin' ? (
-                <>
-                  {/* Admin Section */}
-                  <button 
-                    onClick={() => navigate('/adminquotes')}
-                    className="group px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent flex items-center hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
-                  >
-                    <svg 
-                      className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6" 
-                      fill="none" 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Quote Requests
-                  </button>
+{isLoggedIn && userRole === 'admin' ? (
+  <>
+    {/* Admin Section */}
+    <button 
+      onClick={() => navigate('/adminquotes')}
+      className="group px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent flex items-center hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
+    >
+      <svg 
+        className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      Quote Requests
+    </button>
 
-                  <button 
-                    onClick={() => navigate('/dropdowns')}
-                    className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
-                  >
-                    Dropdowns
-                  </button>
+    {/* Contact Enquiries Button */}
+    <button 
+      onClick={() => navigate('/contactenquiry')}
+      className="group px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent flex items-center hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
+    >
+      <svg 
+        className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+      Contact Enquiries
+    </button>
 
-                  <button 
-                    onClick={() => navigate('/adminm')}
-                    className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
-                  >
-                    Admin Management
-                  </button>
+    <button 
+      onClick={() => navigate('/dropdowns')}
+      className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
+    >
+      Dropdowns
+    </button>
 
-                  <button
-                    onClick={handleLogout}
-                    className="hover:text-green-200 px-3 py-1 text-sm font-medium transition-colors duration-200 flex items-center border-b-2 border-transparent hover:border-green-200 cursor-pointer"
-                  >
-                    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Logout
-                  </button>
-                </>
-              ) : (
+    <button 
+      onClick={() => navigate('/adminm')}
+      className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
+    >
+      Admin Management
+    </button>
+
+    <button
+      onClick={handleLogout}
+      className="hover:text-green-200 px-3 py-1 text-sm font-medium transition-colors duration-200 flex items-center border-b-2 border-transparent hover:border-green-200 cursor-pointer"
+    >
+      <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      Logout
+    </button>
+  </>
+) : (
                 <>
                   {/* Contact Information for non-admin users */}
                   <div className="flex items-center space-x-6">
@@ -752,83 +768,99 @@ const Topbar = ({ cartItems = [] }) => {
           )}
 
           {/* Mobile Contact Info in Green Bar - Show when NOT admin and menu is NOT open */}
-          {!isMenuOpen && (!isLoggedIn || userRole !== 'admin') && (
-            <div className="md:hidden flex items-center justify-center space-x-4 px-4 py-1 overflow-x-auto">
-              {/* Email */}
-              <button
-                onClick={handleEmailClick}
-                className="flex items-center space-x-1 text-gray-200 hover:text-green-300 transition-colors duration-200 cursor-pointer group flex-shrink-0"
-              >
-                <svg className="h-3 w-3 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <span className="text-xs font-medium border-b border-transparent group-hover:border-green-300 whitespace-nowrap">
-                  {companyEmail}
-                </span>
-              </button>
+{!isMenuOpen && (!isLoggedIn || userRole !== 'admin') && (
+  <div className="md:hidden flex items-center justify-center h-full space-x-4 px-4 overflow-x-auto">
+    {/* Email */}
+    <button
+      onClick={handleEmailClick}
+      className="flex items-center space-x-2 text-gray-200 hover:text-green-300 transition-colors duration-200 cursor-pointer group flex-shrink-0"
+    >
+      <svg className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+      <span className="text-sm font-medium border-b border-transparent group-hover:border-green-300 whitespace-nowrap">
+        {companyEmail}
+      </span>
+    </button>
 
-              {/* Phone */}
-              <button
-                onClick={handlePhoneClick}
-                className="flex items-center space-x-1 text-gray-200 hover:text-green-300 transition-colors duration-200 cursor-pointer group flex-shrink-0"
-              >
-                <svg className="h-3 w-3 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                <span className="text-xs font-medium border-b border-transparent group-hover:border-green-300 whitespace-nowrap">
-                  {companyPhone}
-                </span>
-              </button>
-            </div>
-          )}
+    {/* Phone */}
+    <button
+      onClick={handlePhoneClick}
+      className="flex items-center space-x-2 text-gray-200 hover:text-green-300 transition-colors duration-200 cursor-pointer group flex-shrink-0"
+    >
+      <svg className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+      </svg>
+      <span className="text-sm font-medium border-b border-transparent group-hover:border-green-300 whitespace-nowrap">
+        {companyPhone}
+      </span>
+    </button>
+  </div>
+)}          
 
-          {/* Mobile Admin Options in Green Bar - Show when logged in as admin and menu is NOT open */}
-          {!isMenuOpen && isLoggedIn && userRole === 'admin' && (
-            <div className="md:hidden flex items-center justify-center space-x-2 px-4 py-1 overflow-x-auto">
-              {/* Quote Requests Button */}
-              <button 
-                onClick={() => navigate('/adminquotes')}
-                className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 flex items-center cursor-pointer whitespace-nowrap"
-              >
-                <svg 
-                  className="h-3 w-3 mr-1" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Quotes
-              </button>
+{/* Mobile Admin Options in Green Bar - Show when logged in as admin and menu is NOT open */}
+{!isMenuOpen && isLoggedIn && userRole === 'admin' && (
+  <div className="md:hidden flex items-center justify-center space-x-2 px-4 py-1 overflow-x-auto">
+    {/* Quote Requests Button */}
+    <button 
+      onClick={() => navigate('/adminquotes')}
+      className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 flex items-center cursor-pointer whitespace-nowrap"
+    >
+      <svg 
+        className="h-3 w-3 mr-1" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      Quotes
+    </button>
 
-              {/* Dropdowns Button */}
-              <button 
-                onClick={() => navigate('/dropdowns')}
-                className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
-              >
-                Dropdowns
-              </button>
+    {/* Contact Enquiries Button - ADD THIS */}
+    <button 
+      onClick={() => navigate('/contactenquiry')}
+      className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 flex items-center cursor-pointer whitespace-nowrap"
+    >
+      <svg 
+        className="h-3 w-3 mr-1" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+      Enquiries
+    </button>
 
-              {/* Admin Management Button */}
-              <button 
-                onClick={() => navigate('/adminm')}
-                className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
-              >
-                Admin
-              </button>
+    {/* Dropdowns Button */}
+    <button 
+      onClick={() => navigate('/dropdowns')}
+      className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
+    >
+      Dropdowns
+    </button>
 
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-colors duration-200 flex items-center border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
-              >
-                <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
-              </button>
-            </div>
-          )}
+    {/* Admin Management Button */}
+    <button 
+      onClick={() => navigate('/adminm')}
+      className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
+    >
+      Admin
+    </button>
+
+    {/* Logout Button */}
+    <button
+      onClick={handleLogout}
+      className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-colors duration-200 flex items-center border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
+    >
+      <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      Logout
+    </button>
+  </div>
+)}
         </div>
       </div>
 
@@ -952,60 +984,75 @@ const Topbar = ({ cartItems = [] }) => {
               </div>
             )}
 
-            {/* Admin Section in Mobile Menu */}
-            {isLoggedIn && userRole === 'admin' && (
-              <div className="border-t border-gray-200 pt-2">
-                <div className="px-3 py-2 text-sm font-medium text-gray-500">Admin</div>
-                
-                {/* Quote Requests in Mobile */}
-                <button
-                  onClick={() => {
-                    navigate('/adminquotes');
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left flex items-center cursor-pointer"
-                >
-                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Quote Requests
-                </button>
+{/* Admin Section in Mobile Menu */}
+{isLoggedIn && userRole === 'admin' && (
+  <div className="border-t border-gray-200 pt-2">
+    <div className="px-3 py-2 text-sm font-medium text-gray-500">Admin</div>
+    
+    {/* Quote Requests in Mobile */}
+    <button
+      onClick={() => {
+        navigate('/adminquotes');
+        setIsMenuOpen(false);
+      }}
+      className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left flex items-center cursor-pointer"
+    >
+      <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      Quote Requests
+    </button>
 
-                {/* Dropdowns in Mobile */}
-                <button
-                  onClick={() => {
-                    navigate('/dropdowns');
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
-                >
-                  Dropdowns
-                </button>
+    {/* Contact Enquiries in Mobile */}
+    <button
+      onClick={() => {
+        navigate('/contactenquiry');
+        setIsMenuOpen(false);
+      }}
+      className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left flex items-center cursor-pointer"
+    >
+      <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+      Contact Enquiries
+    </button>
 
-                {/* Admin Management in Mobile */}
-                <button
-                  onClick={() => {
-                    navigate('/adminm');
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
-                >
-                  Admin Management
-                </button>
+    {/* Dropdowns in Mobile */}
+    <button
+      onClick={() => {
+        navigate('/dropdowns');
+        setIsMenuOpen(false);
+      }}
+      className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
+    >
+      Dropdowns
+    </button>
 
-                {/* Logout in Mobile */}
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-gray-800 hover:text-red-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
+    {/* Admin Management in Mobile */}
+    <button
+      onClick={() => {
+        navigate('/adminm');
+        setIsMenuOpen(false);
+      }}
+      className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
+    >
+      Admin Management
+    </button>
 
+    
+
+    {/* Logout in Mobile */}
+    <button
+      onClick={() => {
+        handleLogout();
+        setIsMenuOpen(false);
+      }}
+      className="text-gray-800 hover:text-red-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left cursor-pointer"
+    >
+      Logout
+    </button>
+  </div>
+)}
             <Link
               to="/cart"
               className="text-gray-800 hover:text-green-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"

@@ -10,6 +10,16 @@ const subCategorySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
     required: true
+  },
+  descriptionTitle: {
+    type: String,
+    trim: true,
+    default: ""
+  },
+  description: {
+    type: String,
+    trim: true,
+    default: ""
   }
 }, {
   timestamps: true

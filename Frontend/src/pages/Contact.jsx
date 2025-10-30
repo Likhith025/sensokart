@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
+import ContactForm from '../components/ContactForm';
 import API_BASE_URL from '../src';
 
 const Contact = () => {
@@ -13,19 +14,8 @@ const Contact = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
-  const [contactFormError, setContactFormError] = useState('');
-  const [contactFormSuccess, setContactFormSuccess] = useState('');
-  const [contacts, setContacts] = useState([]);
-  const [selectedContact, setSelectedContact] = useState(null);
   const token = Cookies.get('authToken');
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
-
-  // Debug imports
-  useEffect(() => {
-    console.log('Contact.jsx: Topbar:', typeof Topbar, Topbar);
-    console.log('Contact.jsx: API_BASE_URL:', API_BASE_URL);
-  }, []);
 
   // Fetch contact page content
   useEffect(() => {
@@ -65,77 +55,6 @@ const Contact = () => {
     };
     fetchPage();
   }, []);
-
-  // Fetch contacts for admin
-  useEffect(() => {
-    if (userRole === 'admin') {
-      if (!token) {
-        setError('Please log in as an admin to view contacts.');
-        return;
-      }
-      const fetchContacts = async () => {
-        try {
-          console.log('Fetching contacts:', `${API_BASE_URL}/contacts`);
-          const response = await fetch(`${API_BASE_URL}/contacts`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error('Non-JSON response for contacts:', text.slice(0, 100));
-            throw new Error('Invalid response from server');
-          }
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to fetch contacts');
-          }
-          const data = await response.json();
-          setContacts(Array.isArray(data) ? data : []);
-        } catch (err) {
-          console.error('Error fetching contacts:', err);
-          setError(err.message || 'Failed to load contacts.');
-        }
-      };
-      fetchContacts();
-    }
-  }, [userRole, token]);
-
-  // Handle contact form input changes
-  const handleContactFormChange = (e) => {
-    setContactForm({ ...contactForm, [e.target.name]: e.target.value });
-  };
-
-  // Handle contact form submission
-  const handleContactSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setContactFormError('');
-      setContactFormSuccess('');
-      console.log('Submitting to:', `${API_BASE_URL}/contacts`, 'Payload:', contactForm);
-      const response = await fetch(`${API_BASE_URL}/contacts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contactForm),
-      });
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response for contact submission:', text.slice(0, 100));
-        throw new Error('Server returned an unexpected response');
-      }
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to submit contact form');
-      }
-      const data = await response.json();
-      setContactFormSuccess(data.message || 'Your message has been sent successfully!');
-      setContactForm({ name: '', email: '', phone: '', subject: '', message: '' });
-      setTimeout(() => setContactFormSuccess(''), 3000);
-    } catch (err) {
-      console.error('Error submitting contact form:', err);
-      setContactFormError(err.message || 'Failed to send message. Please try again.');
-    }
-  };
 
   // Handle page content save
   const handleSave = async () => {
@@ -196,100 +115,12 @@ const Contact = () => {
     }
   };
 
-  // Fetch single contact by ID
-  const handleViewContact = async (contactId) => {
-    try {
-      setError('');
-      console.log('Fetching contact:', `${API_BASE_URL}/contacts/${contactId}`);
-      const response = await fetch(`${API_BASE_URL}/contacts/${contactId}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response for contact:', text.slice(0, 100));
-        throw new Error('Invalid response from server');
-      }
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch contact details');
-      }
-      const data = await response.json();
-      setSelectedContact(data);
-    } catch (err) {
-      console.error('Error fetching contact:', err);
-      setError(err.message || 'Failed to load contact details.');
-    }
-  };
-
-  // Update contact status
-  const handleUpdateStatus = async (contactId, status) => {
-    try {
-      setError('');
-      console.log('Updating status:', `${API_BASE_URL}/contacts/${contactId}/status`, 'Status:', status);
-      const response = await fetch(`${API_BASE_URL}/contacts/${contactId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status }),
-      });
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response for status update:', text.slice(0, 100));
-        throw new Error('Invalid response from server');
-      }
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update contact status');
-      }
-      setContacts(contacts.map((c) => (c._id === contactId ? { ...c, status } : c)));
-      setSelectedContact(null);
-      setSuccess('Contact status updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      console.error('Error updating contact status:', err);
-      setError(err.message || 'Failed to update status.');
-    }
-  };
-
-  // Delete contact
-  const handleDeleteContact = async (contactId) => {
-    try {
-      setError('');
-      console.log('Deleting contact:', `${API_BASE_URL}/contacts/${contactId}`);
-      const response = await fetch(`${API_BASE_URL}/contacts/${contactId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response for delete:', text.slice(0, 100));
-        throw new Error('Invalid response from server');
-      }
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete contact');
-      }
-      setContacts(contacts.filter((c) => c._id !== contactId));
-      setSelectedContact(null);
-      setSuccess('Contact deleted successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      console.error('Error deleting contact:', err);
-      setError(err.message || 'Failed to delete contact.');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar />
       
       {/* Main Content with proper spacing */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16"> {/* Changed pt-24 to pt-32 */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16">
         
         {/* Header */}
         <div className="text-center mb-10">
@@ -397,160 +228,8 @@ const Contact = () => {
               )}
             </div>
 
-            {/* Contact Form for Users */}
-            <div className="mt-8 bg-white shadow-xl rounded-xl p-8 border border-gray-200 transition-shadow duration-300 hover:shadow-2xl">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Send Us a Message</h2>
-              {contactFormError && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                  {contactFormError}
-                </div>
-              )}
-              {contactFormSuccess && (
-                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 transition-opacity duration-500">
-                  {contactFormSuccess}
-                </div>
-              )}
-              <form onSubmit={handleContactSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={contactForm.name}
-                    onChange={handleContactFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                    placeholder="Your Name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={contactForm.email}
-                    onChange={handleContactFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                    placeholder="Your Email"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={contactForm.phone}
-                    onChange={handleContactFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                    placeholder="Your Phone (optional)"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                  <input
-                    type="text"
-                    name="subject"
-                    value={contactForm.subject}
-                    onChange={handleContactFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                    placeholder="Subject"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                  <textarea
-                    name="message"
-                    value={contactForm.message}
-                    onChange={handleContactFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 resize-vertical"
-                    rows="6"
-                    placeholder="Your Message"
-                    required
-                  />
-                </div>
-                <div>
-                  <button
-                    type="submit"
-                    className="w-full px-6 py-3 bg-blue-600 text-white font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:scale-105"
-                  >
-                    Send Message
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Admin Contact Management */}
-            {userRole === 'admin' && (
-              <div className="mt-8 bg-white shadow-xl rounded-xl p-8 border border-gray-200 transition-shadow duration-300 hover:shadow-2xl">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Submissions</h2>
-                {contacts.length === 0 ? (
-                  <p className="text-gray-500 italic">No contact submissions found.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {contacts.map((contact) => (
-                      <div
-                        key={contact._id}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-semibold text-gray-800">{contact.subject}</p>
-                            <p className="text-sm text-gray-600">From: {contact.name} ({contact.email})</p>
-                            {contact.phone && <p className="text-sm text-gray-600">Phone: {contact.phone}</p>}
-                            <p className="text-sm text-gray-600">Status: {contact.status || 'Pending'}</p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleViewContact(contact._id)}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:scale-105"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => handleDeleteContact(contact._id)}
-                              className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:scale-105"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {selectedContact && (
-                  <div className="mt-6 p-6 bg-gray-50 rounded-lg">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Contact Details</h3>
-                    <p><strong>Name:</strong> {selectedContact.name}</p>
-                    <p><strong>Email:</strong> {selectedContact.email}</p>
-                    {selectedContact.phone && <p><strong>Phone:</strong> {selectedContact.phone}</p>}
-                    <p><strong>Subject:</strong> {selectedContact.subject}</p>
-                    <p><strong>Message:</strong> {selectedContact.message}</p>
-                    <p><strong>Status:</strong> {selectedContact.status || 'Pending'}</p>
-                    {selectedContact.notes && <p><strong>Notes:</strong> {selectedContact.notes}</p>}
-                    <p><strong>Submitted:</strong> {new Date(selectedContact.createdAt).toLocaleString()}</p>
-                    <div className="mt-4 flex space-x-4">
-                      <select
-                        value={selectedContact.status || 'Pending'}
-                        onChange={(e) => handleUpdateStatus(selectedContact._id, e.target.value)}
-                        className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Resolved">Resolved</option>
-                      </select>
-                      <button
-                        onClick={() => setSelectedContact(null)}
-                        className="px-4 py-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:scale-105"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Contact Form Component */}
+            <ContactForm />
           </>
         )}
       </div>

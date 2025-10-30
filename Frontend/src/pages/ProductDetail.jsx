@@ -4,6 +4,181 @@ import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
 
+// Fixed Rich Text Editor Component with proper line break handling
+const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." }) => {
+  const textareaRef = React.useRef(null);
+
+  const handleFormat = (format) => {
+    if (!textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    // Get the display text (without HTML tags)
+    const displayText = getDisplayText(value);
+    const selectedText = displayText.substring(start, end);
+    
+    if (!selectedText) return;
+
+    let formattedText = '';
+    let newValue = '';
+
+    switch (format) {
+      case 'bold':
+        formattedText = `<strong>${selectedText}</strong>`;
+        break;
+      case 'italic':
+        formattedText = `<em>${selectedText}</em>`;
+        break;
+      case 'underline':
+        formattedText = `<u>${selectedText}</u>`;
+        break;
+      default:
+        formattedText = selectedText;
+    }
+
+    // Replace the selected text with formatted version in the HTML
+    const beforeText = displayText.substring(0, start);
+    const afterText = displayText.substring(end);
+    
+    // Convert the new text back to HTML format
+    const newDisplayText = beforeText + formattedText + afterText;
+    const newHtml = newDisplayText.replace(/\n/g, '<br>');
+    
+    onChange(newHtml);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = start + formattedText.length;
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  };
+
+  const handleList = (type) => {
+    const cursorPos = textareaRef.current?.selectionStart || 0;
+    const displayText = getDisplayText(value);
+    
+    const textBefore = displayText.substring(0, cursorPos);
+    const textAfter = displayText.substring(cursorPos);
+    
+    let newText = '';
+    if (type === 'bullet') {
+      newText = textBefore + (textBefore.endsWith('\n') || !textBefore ? '' : '\n') + '• ' + textAfter;
+    } else if (type === 'number') {
+      newText = textBefore + (textBefore.endsWith('\n') || !textBefore ? '' : '\n') + '1. ' + textAfter;
+    }
+    
+    // Convert back to HTML
+    const newHtml = newText.replace(/\n/g, '<br>');
+    onChange(newHtml);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = cursorPos + (type === 'bullet' ? 3 : 4);
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  const handleTextareaChange = (e) => {
+    // Convert newlines to <br> tags for proper HTML display
+    const textWithBreaks = e.target.value.replace(/\n/g, '<br>');
+    onChange(textWithBreaks);
+  };
+
+  // Convert HTML back to text with proper line breaks for editing
+  const getDisplayText = (html) => {
+    if (!html) return '';
+    
+    // Convert <br> tags back to newlines for editing
+    return html.replace(/<br\s*\/?>/gi, '\n')
+               .replace(/<\/p>/gi, '\n\n')
+               .replace(/<\/div>/gi, '\n')
+               .replace(/<[^>]*>/g, '')
+               .replace(/&nbsp;/g, ' ')
+               .replace(/&amp;/g, '&')
+               .replace(/&lt;/g, '<')
+               .replace(/&gt;/g, '>')
+               .replace(/&quot;/g, '"');
+  };
+
+  return (
+    <div className="border border-gray-300 rounded-md">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2 p-3 border-b border-gray-300 bg-gray-50">
+        <button
+          type="button"
+          onClick={() => handleFormat('bold')}
+          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white min-w-[40px]"
+          title="Bold"
+        >
+          <strong>B</strong>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFormat('italic')}
+          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white min-w-[40px]"
+          title="Italic"
+        >
+          <em>I</em>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFormat('underline')}
+          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white min-w-[40px]"
+          title="Underline"
+        >
+          <u>U</u>
+        </button>
+        <div className="w-px h-6 bg-gray-300"></div>
+        <button
+          type="button"
+          onClick={() => handleList('bullet')}
+          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-sm"
+          title="Bullet List"
+        >
+          • List
+        </button>
+        <button
+          type="button"
+          onClick={() => handleList('number')}
+          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-sm"
+          title="Numbered List"
+        >
+          1. List
+        </button>
+      </div>
+      
+      {/* Textarea */}
+      <div className="p-1">
+        <textarea
+          ref={textareaRef}
+          value={getDisplayText(value)}
+          onChange={handleTextareaChange}
+          placeholder={placeholder}
+          rows="6"
+          className="w-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none text-sm md:text-base whitespace-pre-wrap"
+          style={{ lineHeight: '1.6' }}
+        />
+      </div>
+      
+      {/* Preview */}
+      <div className="border-t border-gray-200 p-3 bg-gray-50">
+        <label className="text-xs text-gray-500 font-medium mb-2 block">Preview:</label>
+        <div 
+          className="text-sm mt-1 prose prose-sm max-w-none"
+          style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}
+          dangerouslySetInnerHTML={{ __html: value }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -14,12 +189,8 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
-  const [imageZoom, setImageZoom] = useState(false);
-  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const [relatedProducts, setRelatedProducts] = useState([]);
-  const [quoteSuccess, setQuoteSuccess] = useState('');
-  const [quoteError, setQuoteError] = useState('');
-  const [showShareOptions, setShowShareOptions] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
 
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
   const token = Cookies.get('authToken');
@@ -29,6 +200,7 @@ const ProductDetail = () => {
   const [editFormData, setEditFormData] = useState({
     name: '',
     description: '',
+    tabDescription: '',
     price: '',
     salePrice: '',
     brand: '',
@@ -37,7 +209,6 @@ const ProductDetail = () => {
     quantity: '',
     features: '',
     sku: '',
-    weight: '',
     manufacturer: '',
     modelNo: '',
     measuringParameters: ''
@@ -45,11 +216,31 @@ const ProductDetail = () => {
   const [editSpecsFields, setEditSpecsFields] = useState([{ key: '', value: '' }]);
   const [editCoverPhoto, setEditCoverPhoto] = useState(null);
   const [editImages, setEditImages] = useState([]);
+  const [editPdf, setEditPdf] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
   const [removeCoverPhoto, setRemoveCoverPhoto] = useState(false);
+  const [removePdf, setRemovePdf] = useState(false);
   const [imagesToRemove, setImagesToRemove] = useState([]);
+
+  // Preview States
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState({
+    name: '',
+    description: '',
+    tabDescription: '',
+    price: '',
+    salePrice: '',
+    brand: '',
+    category: '',
+    subCategory: '',
+    quantity: '',
+    features: [],
+    specifications: {},
+    coverPhoto: null,
+    images: []
+  });
 
   // Dropdown data
   const [brands, setBrands] = useState([]);
@@ -59,6 +250,7 @@ const ProductDetail = () => {
   // Refs for file inputs
   const coverPhotoInputRef = React.useRef(null);
   const imagesInputRef = React.useRef(null);
+  const pdfInputRef = React.useRef(null);
 
   useEffect(() => {
     const savedCart = Cookies.get('cart');
@@ -79,22 +271,12 @@ const ProductDetail = () => {
         setError('');
 
         const response = await fetch(`${API_BASE_URL}/products/${id}`);
-        const contentType = response.headers.get('content-type');
-
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          console.error('Non-JSON response:', text);
-          throw new Error('Invalid response from server');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch product');
         }
 
         const data = await response.json();
-        console.log('Raw product data:', JSON.stringify(data, null, 2));
-        console.log('Specifications type:', typeof data.specifications);
-        console.log('Specifications content:', JSON.stringify(data.specifications, null, 2));
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch product');
-        }
-
         setProduct(data);
         setSelectedImage(data.coverPhoto || data.images?.[0] || '');
 
@@ -102,6 +284,7 @@ const ProductDetail = () => {
         setEditFormData({
           name: data.name || '',
           description: data.description || '',
+          tabDescription: data.tabDescription || '',
           price: data.price || '',
           salePrice: data.salePrice || '',
           brand: data.brand?._id || '',
@@ -110,60 +293,27 @@ const ProductDetail = () => {
           quantity: data.quantity || '',
           features: data.features?.join(', ') || '',
           sku: data.sku || '',
-          weight: data.weight || '1 kg',
           manufacturer: data.manufacturer || '',
           modelNo: data.modelNo || '',
           measuringParameters: data.measuringParameters || ''
         });
 
-        // Parse specifications with robust validation
+        // Parse specifications
         let specs = [];
         try {
           const specsData = data.specifications;
-          if (!specsData) {
-            console.warn('Specifications is null or undefined, using default');
-            specs = [{ key: '', value: '' }];
-          } else if (typeof specsData === 'string') {
-            console.warn('Specifications is a string, attempting to parse:', specsData);
-            try {
-              const parsedSpecs = JSON.parse(specsData);
-              if (typeof parsedSpecs === 'object' && !Array.isArray(parsedSpecs) && parsedSpecs !== null) {
-                specs = Object.entries(parsedSpecs)
-                  .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null && value !== '')
-                  .map(([key, value]) => ({ key, value: String(value) }));
-              } else if (Array.isArray(parsedSpecs)) {
-                specs = parsedSpecs
-                  .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null && item.value !== '')
-                  .map(item => ({ key: item.key, value: String(item.value) }));
-              } else {
-                console.warn('Parsed specifications is neither an object nor an array:', parsedSpecs);
-                specs = [{ key: '', value: '' }];
-              }
-            } catch (parseErr) {
-              console.error('Failed to parse specifications string:', parseErr, 'Raw string:', specsData);
-              specs = [{ key: '', value: '' }];
-            }
-          } else if (typeof specsData === 'object' && !Array.isArray(specsData) && specsData !== null) {
+          if (specsData && typeof specsData === 'object' && !Array.isArray(specsData)) {
             specs = Object.entries(specsData)
-              .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null && value !== '')
+              .filter(([key, value]) => key && value)
               .map(([key, value]) => ({ key, value: String(value) }));
-          } else if (Array.isArray(specsData)) {
-            specs = specsData
-              .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null && item.value !== '')
-              .map(item => ({ key: item.key, value: String(item.value) }));
-          } else {
-            console.warn('Specifications is an unexpected type:', typeof specsData, specsData);
-            specs = [{ key: '', value: '' }];
           }
           if (!specs.length) {
-            console.warn('No valid specifications found, using default');
             specs = [{ key: '', value: '' }];
           }
         } catch (specErr) {
           console.error('Error parsing specifications:', specErr);
           specs = [{ key: '', value: '' }];
         }
-        console.log('Processed specifications for editSpecsFields:', specs);
         setEditSpecsFields(specs);
 
         // Fetch related products
@@ -267,72 +417,55 @@ const ProductDetail = () => {
     return item ? item.quantity : 0;
   };
 
-  // Request Quote functionality
-  const handleRequestQuote = () => {
-    navigate('/requestquote', { 
-      state: { 
-        productId: id,
-        product,
-        quantity 
-      }
-    });
-  };
+  const downloadPdf = async () => {
+    if (!product.pdf) return;
 
-  // Share functionality
-  const getShareableLink = () => {
-    return `${window.location.origin}/product/${id}`;
-  };
-
-  const shareOnWhatsApp = () => {
-    const message = `Check out this product: ${product.name}\n${getShareableLink()}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
-  const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(getShareableLink());
-      alert('Link copied to clipboard!');
-      setShowShareOptions(false);
-    } catch (err) {
-      console.error('Failed to copy: ', err);
-    }
-  };
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      // Use native share dialog on mobile
-      try {
-        await navigator.share({
-          title: product.name,
-          text: `Check out this product: ${product.name}`,
-          url: getShareableLink(),
-        });
-      } catch (err) {
-        console.log('Error sharing:', err);
+      setDownloadLoading(true);
+      
+      const response = await fetch(`${API_BASE_URL}/${id}/download-pdf`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status}`);
       }
-    } else {
-      // Fallback to copy to clipboard on desktop
-      copyToClipboard();
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const contentDisposition = response.headers.get('content-disposition');
+      let fileName = product.pdfOriginalName || `${product.name.replace(/\s+/g, '_')}_brochure.pdf`;
+      
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+?)"/);
+        if (fileNameMatch) fileName = fileNameMatch[1];
+      }
+      
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('❌ PDF download failed:', error);
+      alert('Download failed. Please try again later.');
+    } finally {
+      setDownloadLoading(false);
     }
-  };
-
-  // Image zoom functionality - disable on mobile
-  const handleImageMouseMove = (e) => {
-    if (!imageZoom || window.innerWidth < 768) return;
-
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-
-    setZoomPosition({ x, y });
   };
 
   // Edit functionality
   const handleEditInputChange = (e) => {
     setEditFormData({ ...editFormData, [e.target.name]: e.target.value });
 
-    // Fetch subcategories when category changes
     if (e.target.name === 'category') {
       fetchSubCategories(e.target.value);
     }
@@ -342,6 +475,9 @@ const ProductDetail = () => {
     if (type === 'cover') {
       setEditCoverPhoto(e.target.files[0]);
       setRemoveCoverPhoto(false);
+    } else if (type === 'pdf') {
+      setEditPdf(e.target.files[0]);
+      setRemovePdf(false);
     } else {
       setEditImages(Array.from(e.target.files));
     }
@@ -350,6 +486,11 @@ const ProductDetail = () => {
   const removeEditCoverPhoto = () => {
     setEditCoverPhoto(null);
     setRemoveCoverPhoto(true);
+  };
+
+  const removeEditPdf = () => {
+    setEditPdf(null);
+    setRemovePdf(true);
   };
 
   const removeEditImage = (index) => {
@@ -374,6 +515,46 @@ const ProductDetail = () => {
     setEditSpecsFields(editSpecsFields.filter((_, i) => i !== index));
   };
 
+  // Preview functionality
+  const generatePreview = () => {
+    const specifications = {};
+    editSpecsFields.forEach(field => {
+      if (field.key?.trim() && field.value?.trim()) {
+        specifications[field.key.trim()] = field.value.trim();
+      }
+    });
+
+    const featuresArray = editFormData.features
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const brandName = brands.find(b => b._id === editFormData.brand)?.name || '';
+    const categoryName = categories.find(c => c._id === editFormData.category)?.name || '';
+    const subCategoryName = subCategories.find(s => s._id === editFormData.subCategory)?.name || '';
+
+    setPreviewData({
+      name: editFormData.name,
+      description: editFormData.description,
+      tabDescription: editFormData.tabDescription,
+      price: editFormData.price,
+      salePrice: editFormData.salePrice,
+      brand: brandName,
+      category: categoryName,
+      subCategory: subCategoryName,
+      quantity: editFormData.quantity,
+      features: featuresArray,
+      specifications: specifications,
+      coverPhoto: editCoverPhoto ? URL.createObjectURL(editCoverPhoto) : (product.coverPhoto && !removeCoverPhoto ? product.coverPhoto : null),
+      images: [
+        ...(editImages.map(img => URL.createObjectURL(img))),
+        ...(product.images ? product.images.filter(img => !imagesToRemove.includes(img)) : [])
+      ]
+    });
+
+    setShowPreview(true);
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (editLoading) return;
@@ -383,7 +564,6 @@ const ProductDetail = () => {
       setEditError('');
       setEditSuccess('');
 
-      // Create FormData for file uploads
       const formData = new FormData();
 
       // Add text fields
@@ -403,36 +583,27 @@ const ProductDetail = () => {
       // Add specifications
       const specifications = {};
       editSpecsFields.forEach(field => {
-        if (field.key?.trim() && field.value !== undefined && field.value !== null && field.value.trim()) {
+        if (field.key?.trim() && field.value?.trim()) {
           specifications[field.key.trim()] = field.value.trim();
         }
       });
       formData.append('specifications', JSON.stringify(specifications));
 
-      // Add cover photo
-      if (editCoverPhoto) {
-        formData.append('coverPhoto', editCoverPhoto);
-      }
+      // Add files
+      if (editCoverPhoto) formData.append('coverPhoto', editCoverPhoto);
+      if (editPdf) formData.append('pdf', editPdf);
+      editImages.forEach((image) => formData.append('images', image));
 
-      // Add additional images
-      editImages.forEach((image) => {
-        formData.append('images', image);
-      });
-
-      // Add image removal flags
-      if (removeCoverPhoto) {
-        formData.append('removeCoverPhoto', 'true');
-      }
-
+      // Add removal flags
+      if (removeCoverPhoto) formData.append('removeCoverPhoto', 'true');
+      if (removePdf) formData.append('removePdf', 'true');
       if (imagesToRemove.length > 0) {
         formData.append('imagesToRemove', JSON.stringify(imagesToRemove));
       }
 
       const response = await fetch(`${API_BASE_URL}/products/${id}`, {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
@@ -442,7 +613,7 @@ const ProductDetail = () => {
         try {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (parseError) {
+        } catch {
           errorMessage = errorText || errorMessage;
         }
         throw new Error(errorMessage);
@@ -453,11 +624,14 @@ const ProductDetail = () => {
       setEditSuccess('Product updated successfully!');
       setProduct(result.product || result);
       setIsEditMode(false);
+      setShowPreview(false);
 
       // Reset edit states
       setEditCoverPhoto(null);
       setEditImages([]);
+      setEditPdf(null);
       setRemoveCoverPhoto(false);
+      setRemovePdf(false);
       setImagesToRemove([]);
 
       setTimeout(() => setEditSuccess(''), 3000);
@@ -469,60 +643,16 @@ const ProductDetail = () => {
     }
   };
 
-  // Utility functions
   const getSpecificationsEntries = () => {
     try {
       const specs = product?.specifications;
-      console.log('getSpecificationsEntries - Raw specifications:', JSON.stringify(specs, null, 2));
-      console.log('getSpecificationsEntries - Type:', typeof specs);
-
-      if (!specs) {
-        console.warn('getSpecificationsEntries - Specifications is null or undefined');
-        return [];
-      }
-
-      if (typeof specs === 'string') {
-        console.warn('getSpecificationsEntries - Specifications is a string, attempting to parse:', specs);
-        try {
-          const parsedSpecs = JSON.parse(specs);
-          if (typeof parsedSpecs === 'object' && !Array.isArray(parsedSpecs) && parsedSpecs !== null) {
-            const entries = Object.entries(parsedSpecs)
-              .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null && value !== '')
-              .map(([key, value]) => [key, String(value)]);
-            console.log('getSpecificationsEntries - Parsed object entries:', entries);
-            return entries;
-          } else if (Array.isArray(parsedSpecs)) {
-            const entries = parsedSpecs
-              .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null && item.value !== '')
-              .map(item => [item.key, String(item.value)]);
-            console.log('getSpecificationsEntries - Parsed array entries:', entries);
-            return entries;
-          } else {
-            console.warn('getSpecificationsEntries - Parsed specifications is neither an object nor an array:', parsedSpecs);
-            return [];
-          }
-        } catch (parseErr) {
-          console.error('getSpecificationsEntries - Failed to parse specifications string:', parseErr, 'Raw string:', specs);
-          return [];
-        }
-      } else if (typeof specs === 'object' && !Array.isArray(specs) && specs !== null) {
-        const entries = Object.entries(specs)
-          .filter(([key, value]) => typeof key === 'string' && value !== undefined && value !== null && value !== '')
-          .map(([key, value]) => [key, String(value)]);
-        console.log('getSpecificationsEntries - Object entries:', entries);
-        return entries;
-      } else if (Array.isArray(specs)) {
-        const entries = specs
-          .filter(item => item && typeof item === 'object' && 'key' in item && 'value' in item && typeof item.key === 'string' && item.value !== undefined && item.value !== null && item.value !== '')
-          .map(item => [item.key, String(item.value)]);
-        console.log('getSpecificationsEntries - Array entries:', entries);
-        return entries;
-      } else {
-        console.warn('getSpecificationsEntries - Specifications is an unexpected type:', typeof specs, specs);
-        return [];
-      }
+      if (!specs || typeof specs !== 'object') return [];
+      
+      return Object.entries(specs)
+        .filter(([key, value]) => key && value)
+        .map(([key, value]) => [key, String(value)]);
     } catch (err) {
-      console.error('getSpecificationsEntries - Error parsing specifications:', err);
+      console.error('Error parsing specifications:', err);
       return [];
     }
   };
@@ -582,13 +712,142 @@ const ProductDetail = () => {
   }
 
   const specificationsEntries = getSpecificationsEntries();
-  console.log('Final specifications entries:', specificationsEntries);
   const displayPrice = product.salePrice || product.price;
   const hasSale = product.salePrice && product.salePrice < product.price;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Topbar cartItems={cartItems} />
+      
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Product Preview</h2>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Preview Images */}
+              <div className="space-y-4">
+                <div className="bg-gray-100 rounded-lg overflow-hidden">
+                  <img
+                    src={previewData.coverPhoto || '/placeholder-image.jpg'}
+                    alt={previewData.name}
+                    className="w-full h-48 object-contain"
+                  />
+                </div>
+                {previewData.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {previewData.images.map((img, idx) => (
+                      <img
+                        key={idx}
+                        src={img}
+                        alt={`Preview ${idx + 1}`}
+                        className="w-full h-16 object-cover rounded-md"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Preview Details */}
+              <div className="space-y-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{previewData.name}</h1>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    {previewData.brand && <p>Brand: {previewData.brand}</p>}
+                    {previewData.category && <p>Category: {previewData.category}</p>}
+                    {previewData.subCategory && <p>Subcategory: {previewData.subCategory}</p>}
+                    <p>SKU: {editFormData.sku}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <span className="text-2xl font-bold text-gray-900">
+                    {formatPrice(previewData.price)}
+                  </span>
+                  {previewData.salePrice && previewData.salePrice < previewData.price && (
+                    <>
+                      <span className="text-lg text-gray-500 line-through">
+                        {formatPrice(previewData.price)}
+                      </span>
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-semibold">
+                        Sale
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <div className="border-t border-b border-gray-200 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900">Status:</span>
+                    <span className={`text-sm font-semibold ${
+                      previewData.quantity > 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {previewData.quantity > 0 ? 'In Stock' : 'Out of Stock'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: previewData.description }} />
+                </div>
+
+                {previewData.features.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Features:</h3>
+                    <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                      {previewData.features.map((feature, index) => (
+                        <li key={index}>{feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {Object.keys(previewData.specifications).length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Specifications:</h3>
+                    <div className="space-y-2">
+                      {Object.entries(previewData.specifications).map(([key, value], index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span className="font-medium text-gray-700">{key}:</span>
+                          <span className="text-gray-600">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex space-x-4 mt-6 pt-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="flex-1 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
+              >
+                Close Preview
+              </button>
+              <button
+                onClick={handleEditSubmit}
+                disabled={editLoading}
+                className="flex-1 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {editLoading ? 'Updating...' : 'Confirm Update'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="pt-16 md:pt-24">
         {/* Breadcrumb Navigation */}
         <nav className="bg-white border-b border-gray-200">
@@ -621,20 +880,11 @@ const ProductDetail = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 p-4 md:p-8">
               {/* Product Images */}
               <div className="space-y-3 md:space-y-4">
-                <div
-                  className="relative bg-gray-100 rounded-lg overflow-hidden"
-                  onMouseEnter={() => window.innerWidth >= 768 && setImageZoom(true)}
-                  onMouseLeave={() => window.innerWidth >= 768 && setImageZoom(false)}
-                  onMouseMove={handleImageMouseMove}
-                >
+                <div className="relative bg-gray-100 rounded-lg overflow-hidden">
                   <img
                     src={selectedImage}
                     alt={product.name}
-                    className="w-full h-48 md:h-96 object-contain transition-transform duration-200"
-                    style={{
-                      transform: imageZoom ? 'scale(1.5)' : 'scale(1)',
-                      transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
-                    }}
+                    className="w-full h-48 md:h-96 object-contain"
                   />
                   {hasSale && (
                     <div className="absolute top-2 md:top-4 left-2 md:left-4 bg-red-500 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-semibold">
@@ -668,31 +918,6 @@ const ProductDetail = () => {
                       {isEditMode ? 'Cancel Edit' : 'Edit Product'}
                     </button>
                   )}
-                  
-                  {/* Share Buttons */}
-                  <div className="flex gap-1 md:gap-2">
-                    {/* WhatsApp Share Button */}
-                    <button
-                      onClick={shareOnWhatsApp}
-                      className="p-2 md:p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 transform hover:scale-110 cursor-pointer"
-                      title="Share on WhatsApp"
-                    >
-                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893-.001-3.189-1.262-6.187-3.55-8.444"/>
-                      </svg>
-                    </button>
-
-                    {/* Share Button */}
-                    <button
-                      onClick={handleShare}
-                      className="p-2 md:p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all duration-200 transform hover:scale-110 cursor-pointer"
-                      title="Share Product"
-                    >
-                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-                      </svg>
-                    </button>
-                  </div>
                 </div>
 
                 {editError && (
@@ -707,22 +932,20 @@ const ProductDetail = () => {
                   </div>
                 )}
 
-                {quoteError && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-3 md:p-4">
-                    <p className="text-red-700 text-sm md:text-base">{quoteError}</p>
-                  </div>
-                )}
-
-                {quoteSuccess && (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-3 md:p-4">
-                    <p className="text-green-700 text-sm md:text-base">{quoteSuccess}</p>
-                  </div>
-                )}
-
                 {isEditMode && userRole === 'admin' ? (
                   <div className="space-y-4 md:space-y-6">
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Edit Product</h2>
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">Edit Product</h2>
+                      <button
+                        type="button"
+                        onClick={generatePreview}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-all duration-200 cursor-pointer text-sm"
+                      >
+                        Preview Changes
+                      </button>
+                    </div>
                     <form onSubmit={handleEditSubmit} className="space-y-4 md:space-y-6">
+                      {/* Basic Information */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
@@ -780,19 +1003,9 @@ const ProductDetail = () => {
                             required
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-                          <input
-                            type="text"
-                            name="weight"
-                            value={editFormData.weight}
-                            onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
-                            placeholder="e.g., 1 kg"
-                          />
-                        </div>
                       </div>
 
+                      {/* Categories */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Brand *</label>
@@ -841,41 +1054,26 @@ const ProductDetail = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer</label>
-                          <input
-                            type="text"
-                            name="manufacturer"
-                            value={editFormData.manufacturer}
-                            onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Model No</label>
-                          <input
-                            type="text"
-                            name="modelNo"
-                            value={editFormData.modelNo}
-                            onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
-                          />
-                        </div>
-                      </div>
-
+                      {/* Descriptions with Rich Text Editors */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-                        <textarea
-                          name="description"
+                        <RichTextEditor
                           value={editFormData.description}
-                          onChange={handleEditInputChange}
-                          rows="3"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
-                          required
+                          onChange={(value) => setEditFormData({...editFormData, description: value})}
+                          placeholder="Enter main product description..."
                         />
                       </div>
 
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tab Description (Sub Description)</label>
+                        <RichTextEditor
+                          value={editFormData.tabDescription}
+                          onChange={(value) => setEditFormData({...editFormData, tabDescription: value})}
+                          placeholder="Enter detailed description for the tab section..."
+                        />
+                      </div>
+
+                      {/* Features */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Features (comma separated)</label>
                         <input
@@ -888,6 +1086,7 @@ const ProductDetail = () => {
                         />
                       </div>
 
+                      {/* Specifications */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Specifications</label>
                         {editSpecsFields.map((field, index) => (
@@ -924,63 +1123,116 @@ const ProductDetail = () => {
                         </button>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Cover Photo</label>
-                        {product.coverPhoto && !removeCoverPhoto && !editCoverPhoto && (
-                          <div className="mb-2">
-                            <p className="text-sm text-gray-600 mb-1">Current Cover Photo:</p>
-                            <div className="relative inline-block">
-                              <img
-                                src={product.coverPhoto}
-                                alt="Current Cover"
-                                className="w-20 h-20 md:w-32 md:h-32 object-cover rounded-md"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setRemoveCoverPhoto(true)}
-                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center hover:bg-red-600 transition-all duration-200 cursor-pointer text-xs"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex flex-col md:flex-row gap-2">
-                          <button
-                            type="button"
-                            onClick={() => coverPhotoInputRef.current.click()}
-                            className="px-3 md:px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
-                          >
-                            {editCoverPhoto ? 'Change Cover Photo' : 'Upload Cover Photo'}
-                          </button>
-                          <input
-                            type="file"
-                            ref={coverPhotoInputRef}
-                            onChange={(e) => handleEditFileChange(e, 'cover')}
-                            accept="image/*"
-                            className="hidden"
-                          />
-                          {editCoverPhoto && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600 truncate">{editCoverPhoto.name}</span>
-                              <button
-                                type="button"
-                                onClick={removeEditCoverPhoto}
-                                className="text-red-500 hover:text-red-700 cursor-pointer text-sm"
-                              >
-                                Remove
-                              </button>
+                      {/* File Uploads */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        {/* Cover Photo */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Cover Photo</label>
+                          {product.coverPhoto && !removeCoverPhoto && !editCoverPhoto && (
+                            <div className="mb-2">
+                              <p className="text-sm text-gray-600 mb-1">Current:</p>
+                              <div className="relative inline-block">
+                                <img
+                                  src={product.coverPhoto}
+                                  alt="Current Cover"
+                                  className="w-20 h-20 object-cover rounded-md"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setRemoveCoverPhoto(true)}
+                                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600 transition-all duration-200 cursor-pointer text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
                             </div>
                           )}
+                          <div className="flex flex-col gap-2">
+                            <button
+                              type="button"
+                              onClick={() => coverPhotoInputRef.current.click()}
+                              className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 cursor-pointer text-sm"
+                            >
+                              {editCoverPhoto ? 'Change Cover' : 'Upload Cover'}
+                            </button>
+                            <input
+                              type="file"
+                              ref={coverPhotoInputRef}
+                              onChange={(e) => handleEditFileChange(e, 'cover')}
+                              accept="image/*"
+                              className="hidden"
+                            />
+                            {editCoverPhoto && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600 truncate">{editCoverPhoto.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={removeEditCoverPhoto}
+                                  className="text-red-500 hover:text-red-700 cursor-pointer text-sm"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* PDF File */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Product PDF</label>
+                          {product.pdf && !removePdf && !editPdf && (
+                            <div className="mb-2">
+                              <p className="text-sm text-gray-600 mb-1">Current:</p>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-blue-600">📄 {product.pdfOriginalName || 'product.pdf'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setRemovePdf(true)}
+                                  className="text-red-500 hover:text-red-700 cursor-pointer text-sm"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-2">
+                            <button
+                              type="button"
+                              onClick={() => pdfInputRef.current.click()}
+                              className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 cursor-pointer text-sm"
+                            >
+                              {editPdf ? 'Change PDF' : 'Upload PDF'}
+                            </button>
+                            <input
+                              type="file"
+                              ref={pdfInputRef}
+                              onChange={(e) => handleEditFileChange(e, 'pdf')}
+                              accept=".pdf"
+                              className="hidden"
+                            />
+                            {editPdf && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600 truncate">{editPdf.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={removeEditPdf}
+                                  className="text-red-500 hover:text-red-700 cursor-pointer text-sm"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
+                      {/* Additional Images */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Additional Images</label>
                         {product.images && product.images.length > 0 && (
                           <div className="mb-3">
                             <p className="text-sm text-gray-600 mb-2">Current Images:</p>
-                            <div className="grid grid-cols-3 md:grid-cols-4 gap-1 md:gap-2 mb-2">
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-2">
                               {product.images
                                 .filter(img => !imagesToRemove.includes(img))
                                 .map((img, index) => (
@@ -988,12 +1240,12 @@ const ProductDetail = () => {
                                     <img
                                       src={img}
                                       alt={`Product ${index + 1}`}
-                                      className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md"
+                                      className="w-16 h-16 object-cover rounded-md"
                                     />
                                     <button
                                       type="button"
                                       onClick={() => removeExistingImage(img)}
-                                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
+                                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
                                     >
                                       ×
                                     </button>
@@ -1002,11 +1254,11 @@ const ProductDetail = () => {
                             </div>
                           </div>
                         )}
-                        <div className="flex flex-col md:flex-row gap-2">
+                        <div className="flex flex-col gap-2">
                           <button
                             type="button"
                             onClick={() => imagesInputRef.current.click()}
-                            className="px-3 md:px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
+                            className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 cursor-pointer text-sm"
                           >
                             Upload Additional Images
                           </button>
@@ -1022,18 +1274,18 @@ const ProductDetail = () => {
                         {editImages.length > 0 && (
                           <div className="mt-2">
                             <p className="text-sm text-gray-600 mb-1">New Images:</p>
-                            <div className="grid grid-cols-3 md:grid-cols-4 gap-1 md:gap-2">
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                               {editImages.map((img, index) => (
                                 <div key={index} className="relative">
                                   <img
                                     src={URL.createObjectURL(img)}
                                     alt={`New ${index + 1}`}
-                                    className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md"
+                                    className="w-16 h-16 object-cover rounded-md"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => removeEditImage(index)}
-                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
+                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
                                   >
                                     ×
                                   </button>
@@ -1044,18 +1296,19 @@ const ProductDetail = () => {
                         )}
                       </div>
 
+                      {/* Submit Buttons */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <button
                           type="submit"
                           disabled={editLoading}
-                          className="py-2 md:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
+                          className="py-2 md:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 cursor-pointer text-sm md:text-base"
                         >
                           {editLoading ? 'Updating...' : 'Update Product'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setIsEditMode(false)}
-                          className="py-2 md:py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
+                          className="py-2 md:py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 cursor-pointer text-sm md:text-base"
                         >
                           Cancel
                         </button>
@@ -1107,7 +1360,7 @@ const ProductDetail = () => {
                     </div>
 
                     <div className="prose prose-sm text-gray-600 max-w-none">
-                      <p className="text-sm md:text-base">{product.description}</p>
+                      <div dangerouslySetInnerHTML={{ __html: product.description }} />
                     </div>
 
                     <div className="border-t border-gray-200 pt-4 md:pt-6">
@@ -1139,12 +1392,6 @@ const ProductDetail = () => {
                             </button>
                           </>
                         )}
-                        <button
-                          onClick={handleRequestQuote}
-                          className="py-2 md:py-3 px-4 md:px-6 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 hover:border-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
-                        >
-                          Request Quote
-                        </button>
                       </div>
 
                       {cartQuantity > 0 && (
@@ -1181,7 +1428,7 @@ const ProductDetail = () => {
               <div className="max-w-4xl mx-auto">
                 <div className="border-b border-gray-200">
                   <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto">
-                    {['description', 'specification'].map((tab) => (
+                    {['description', 'specification', 'download'].map((tab) => (
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -1191,7 +1438,8 @@ const ProductDetail = () => {
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         }`}
                       >
-                        {tab === 'specification' ? 'Specifications' : tab}
+                        {tab === 'specification' ? 'Specifications' : 
+                         tab === 'download' ? 'Downloads' : tab}
                       </button>
                     ))}
                   </nav>
@@ -1200,7 +1448,11 @@ const ProductDetail = () => {
                 <div className="py-4 md:py-8 px-4 md:px-0">
                   {activeTab === 'description' && (
                     <div className="prose prose-sm md:prose-lg max-w-none">
-                      <div className="text-sm md:text-base" dangerouslySetInnerHTML={{ __html: product.description }} />
+                      {product.tabDescription ? (
+                        <div dangerouslySetInnerHTML={{ __html: product.tabDescription }} />
+                      ) : (
+                        <p className="text-gray-500">No detailed description available.</p>
+                      )}
                     </div>
                   )}
 
@@ -1227,7 +1479,6 @@ const ProductDetail = () => {
                               </tbody>
                             </table>
                           </div>
-                          {/* Mobile view for specifications */}
                           <div className="md:hidden space-y-2 p-3">
                             {specificationsEntries.map(([key, value], index) => (
                               <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
@@ -1243,6 +1494,47 @@ const ProductDetail = () => {
                         </div>
                       ) : (
                         <p className="text-gray-500 text-sm md:text-base">No specifications available.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'download' && (
+                    <div className="space-y-4 md:space-y-6">
+                      <h3 className="text-lg md:text-xl font-semibold">Product Downloads</h3>
+                      {product.pdf ? (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 md:space-x-4">
+                              <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <span className="text-blue-600 text-lg md:text-xl">📄</span>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-gray-900 text-sm md:text-base">Product Brochure</h4>
+                                <p className="text-gray-600 text-xs md:text-sm">
+                                  {product.pdfOriginalName || 'Product specification sheet'}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={downloadPdf}
+                              disabled={downloadLoading}
+                              className="px-4 md:px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base flex items-center gap-2"
+                            >
+                              {downloadLoading ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                  Downloading...
+                                </>
+                              ) : (
+                                'Download PDF'
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                          <p className="text-gray-500 text-sm md:text-base">No downloads available for this product.</p>
+                        </div>
                       )}
                     </div>
                   )}

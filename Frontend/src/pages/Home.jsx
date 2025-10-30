@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
@@ -12,40 +12,7 @@ const Home = () => {
   const [error, setError] = useState('');
   const userRole = Cookies.get('userRole')?.toLowerCase() || 'user';
   const token = Cookies.get('authToken');
-
-  // Add Product Modal States
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addFormData, setAddFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    salePrice: '',
-    brand: '',
-    category: '',
-    subCategory: '',
-    quantity: '',
-    features: '',
-    sku: ''
-  });
-  const [specsFields, setSpecsFields] = useState([{ key: '', value: '' }]);
-  const [coverPhoto, setCoverPhoto] = useState(null);
-  const [images, setImages] = useState([]);
-  const [addLoading, setAddLoading] = useState(false);
-  const [addError, setAddError] = useState('');
-  const [addSuccess, setAddSuccess] = useState('');
-
-  // Dropdown data
-  const [brands, setBrands] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
-
-  // Add new options states
-  const [showAddBrand, setShowAddBrand] = useState(false);
-  const [newBrandName, setNewBrandName] = useState('');
-  const [showAddCategory, setShowAddCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [showAddSubCategory, setShowAddSubCategory] = useState(false);
-  const [newSubCategoryName, setNewSubCategoryName] = useState('');
+  const navigate = useNavigate();
 
   // Fetch products
   const fetchProducts = async () => {
@@ -73,202 +40,15 @@ const Home = () => {
   // Initial load
   useEffect(() => {
     fetchProducts();
-    fetchBrands();
-    fetchCategories();
   }, []);
-
-  // Fetch all brands, categories for the add product modal
-  const fetchBrands = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/brand`);
-      const data = await response.json();
-      setBrands(data);
-    } catch (err) {
-      console.error('Failed to fetch brands');
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/category`);
-      const data = await response.json();
-      setCategories(data);
-    } catch (err) {
-      console.error('Failed to fetch categories');
-    }
-  };
-
-  const fetchSubCategories = async (categoryId) => {
-    if (!categoryId) {
-      setSubCategories([]);
-      return;
-    }
-    try {
-      const response = await fetch(`${API_BASE_URL}/category/${categoryId}/subcategories`);
-      const data = await response.json();
-      setSubCategories(data);
-    } catch (err) {
-      console.error('Failed to fetch subcategories');
-    }
-  };
-
-  // Add Product Handlers
-  const handleAddInputChange = (e) => {
-    const { name, value } = e.target;
-    setAddFormData({ ...addFormData, [name]: value });
-    
-    if (name === 'category') {
-      fetchSubCategories(value);
-    }
-  };
-
-  const handleAddFileChange = (e, type) => {
-    if (type === 'cover') {
-      setCoverPhoto(e.target.files[0]);
-    } else {
-      setImages(Array.from(e.target.files));
-    }
-  };
-
-  const handleAddBrand = async () => {
-    if (!newBrandName.trim()) return;
-    try {
-      const response = await fetch(`${API_BASE_URL}/brand/add`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ name: newBrandName })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setBrands([...brands, data.brand]);
-      setAddFormData({ ...addFormData, brand: data.brand._id });
-      setNewBrandName('');
-      setShowAddBrand(false);
-    } catch (err) {
-      setAddError(err.message);
-    }
-  };
-
-  const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    try {
-      const response = await fetch(`${API_BASE_URL}/category/add`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ name: newCategoryName })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setCategories([...categories, data.category]);
-      setAddFormData({ ...addFormData, category: data.category._id });
-      setNewCategoryName('');
-      setShowAddCategory(false);
-    } catch (err) {
-      setAddError(err.message);
-    }
-  };
-
-  const handleAddSubCategory = async () => {
-    if (!newSubCategoryName.trim() || !addFormData.category) return;
-    try {
-      const response = await fetch(`${API_BASE_URL}/subcategory/add`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ name: newSubCategoryName, category: addFormData.category })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setSubCategories([...subCategories, data.subCategory]);
-      setAddFormData({ ...addFormData, subCategory: data.subCategory._id });
-      setNewSubCategoryName('');
-      setShowAddSubCategory(false);
-    } catch (err) {
-      setAddError(err.message);
-    }
-  };
-
-  const handleSpecsChange = (index, field, value) => {
-    const newFields = [...specsFields];
-    newFields[index][field] = value;
-    setSpecsFields(newFields);
-  };
-
-  const addSpecsField = () => {
-    setSpecsFields([...specsFields, { key: '', value: '' }]);
-  };
-
-  const removeSpecsField = (index) => {
-    setSpecsFields(specsFields.filter((_, i) => i !== index));
-  };
-
-  const handleAddSubmit = async (e) => {
-    e.preventDefault();
-    if (addLoading) return;
-    try {
-      setAddLoading(true);
-      setAddError('');
-      setAddSuccess('');
-      const data = new FormData();
-      Object.keys(addFormData).forEach(key => {
-        data.append(key, addFormData[key]);
-      });
-      
-      const specsObj = specsFields.reduce((obj, field) => {
-        if (field.key.trim()) obj[field.key.trim()] = field.value.trim();
-        return obj;
-      }, {});
-      data.append('specifications', JSON.stringify(specsObj));
-      
-      data.append('features', JSON.stringify(addFormData.features.split(',').map(item => item.trim()).filter(Boolean)));
-      if (coverPhoto) data.append('coverPhoto', coverPhoto);
-      images.forEach(img => data.append('images', img));
-
-      const response = await fetch(`${API_BASE_URL}/products/add`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: data
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to add product');
-      setAddSuccess('Product added successfully!');
-      setTimeout(() => {
-        setShowAddModal(false);
-        fetchProducts();
-        setAddFormData({
-          name: '',
-          description: '',
-          price: '',
-          salePrice: '',
-          brand: '',
-          category: '',
-          subCategory: '',
-          quantity: '',
-          features: '',
-          sku: ''
-        });
-        setSpecsFields([{ key: '', value: '' }]);
-        setCoverPhoto(null);
-        setImages([]);
-      }, 2000);
-    } catch (err) {
-      setAddError(err.message);
-    } finally {
-      setAddLoading(false);
-    }
-  };
 
   const getCartQuantity = (productId) => {
     const item = cartItems.find(item => item._id === productId);
     return item ? item.quantity : 0;
+  };
+
+  const handleAddProduct = () => {
+    navigate('/add');
   };
 
   return (
@@ -291,7 +71,7 @@ const Home = () => {
           {userRole === 'admin' && (
             <div className="text-center mb-6">
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={handleAddProduct}
                 className="px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
               >
                 Add New Product
@@ -361,7 +141,7 @@ const Home = () => {
                           )}
                         </div>
                         <div className="p-4">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
                             {product.name}
                           </h3>
                           <p className="text-xs text-gray-500 mb-1">
@@ -453,199 +233,6 @@ const Home = () => {
           )}
         </div>
       </div>
-
-      {/* Add Product Modal */}
-      {showAddModal && userRole === 'admin' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Add New Product</h2>
-            
-            {addError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                {addError}
-              </div>
-            )}
-            {addSuccess && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700">
-                {addSuccess}
-              </div>
-            )}
-            
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input 
-                  name="name" 
-                  value={addFormData.name} 
-                  onChange={handleAddInputChange} 
-                  placeholder="Product Name" 
-                  required 
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input 
-                  name="sku" 
-                  value={addFormData.sku} 
-                  onChange={handleAddInputChange} 
-                  placeholder="SKU" 
-                  required 
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <textarea 
-                name="description" 
-                value={addFormData.description} 
-                onChange={handleAddInputChange} 
-                placeholder="Description" 
-                required 
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows="3" 
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input 
-                  name="price" 
-                  type="number" 
-                  value={addFormData.price} 
-                  onChange={handleAddInputChange} 
-                  placeholder="Price" 
-                  required 
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input 
-                  name="salePrice" 
-                  type="number" 
-                  value={addFormData.salePrice} 
-                  onChange={handleAddInputChange} 
-                  placeholder="Sale Price (optional)" 
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center space-x-2">
-                  <select name="brand" value={addFormData.brand} onChange={handleAddInputChange} required className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Brand</option>
-                    {brands.map(b => (
-                      <option key={b._id} value={b._id}>{b.name}</option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={() => setShowAddBrand(!showAddBrand)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
-                    +
-                  </button>
-                </div>
-                {showAddBrand && (
-                  <div className="mt-2 flex space-x-2">
-                    <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="New Brand Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddBrand} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center space-x-2">
-                  <select name="category" value={addFormData.category} onChange={handleAddInputChange} required className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Category</option>
-                    {categories.map(c => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
-                    +
-                  </button>
-                </div>
-                {showAddCategory && (
-                  <div className="mt-2 flex space-x-2">
-                    <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="New Category Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center space-x-2">
-                  <select name="subCategory" value={addFormData.subCategory} onChange={handleAddInputChange} required className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Subcategory</option>
-                    {subCategories.map(s => (
-                      <option key={s._id} value={s._id}>{s.name}</option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={() => setShowAddSubCategory(!showAddSubCategory)} className="px-3 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
-                    +
-                  </button>
-                </div>
-                {showAddSubCategory && (
-                  <div className="mt-2 flex space-x-2">
-                    <input value={newSubCategoryName} onChange={(e) => setNewSubCategoryName(e.target.value)} placeholder="New Subcategory Name" className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={handleAddSubCategory} className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <input name="quantity" type="number" value={addFormData.quantity} onChange={handleAddInputChange} placeholder="Quantity" required className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <input name="features" value={addFormData.features} onChange={handleAddInputChange} placeholder="Features (comma separated)" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Specifications</label>
-                {specsFields.map((field, index) => (
-                  <div key={index} className="flex space-x-2 mb-2">
-                    <input
-                      value={field.key}
-                      onChange={(e) => handleSpecsChange(index, 'key', e.target.value)}
-                      placeholder="Key"
-                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      value={field.value}
-                      onChange={(e) => handleSpecsChange(index, 'value', e.target.value)}
-                      placeholder="Value"
-                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button type="button" onClick={() => removeSpecsField(index)} className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 cursor-pointer">
-                      X
-                    </button>
-                  </div>
-                ))}
-                <button type="button" onClick={addSpecsField} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer">
-                  Add Field
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Cover Photo</label>
-                <input type="file" onChange={(e) => handleAddFileChange(e, 'cover')} accept="image/*" className="w-full p-3 border border-gray-300 rounded-lg" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Additional Images</label>
-                <input type="file" multiple onChange={(e) => handleAddFileChange(e, 'images')} accept="image/*" className="w-full p-3 border border-gray-300 rounded-lg" />
-              </div>
-
-              <div className="flex space-x-4 pt-4">
-                <button 
-                  type="submit" 
-                  disabled={addLoading}
-                  className="flex-1 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
-                >
-                  {addLoading ? 'Adding Product...' : 'Add Product'}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

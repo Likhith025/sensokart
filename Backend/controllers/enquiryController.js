@@ -4,7 +4,7 @@ import Product from '../models/Product.js'; // Import Product model
 
 // Generate enquiry number
 const generateEnquiryNumber = async () => {
-  const prefix = "Enquiry_";
+  const prefix = "";
   
   // Find the latest enquiry to get the highest number
   const latestEnquiry = await Enquiry.findOne(
