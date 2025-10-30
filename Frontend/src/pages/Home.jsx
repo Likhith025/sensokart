@@ -361,7 +361,7 @@ const Home = () => {
                           )}
                         </div>
                         <div className="p-4">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
                             {product.name}
                           </h3>
                           <p className="text-xs text-gray-500 mb-1">

@@ -32,6 +32,31 @@ const Topbar = ({ cartItems = [] }) => {
 
   const totalCartQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
+  // Contact information
+  const companyEmail = 'sales@sensokart.com';
+  const companyPhone = '+919494122101';
+
+  // Handle phone click
+  const handlePhoneClick = () => {
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      window.location.href = `tel:${companyPhone.replace(/\s/g, '')}`;
+    } else {
+      // For desktop, show phone number in a more prominent way or copy to clipboard
+      navigator.clipboard.writeText(companyPhone.replace(/\s/g, ''));
+      // You could show a toast notification here
+      alert(`Phone number ${companyPhone} copied to clipboard`);
+    }
+  };
+
+  // Handle email click
+  const handleEmailClick = () => {
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      window.location.href = `mailto:${companyEmail}`;
+    } else {
+      window.location.href = `mailto:${companyEmail}`;
+    }
+  };
+
   // Fetch categories with subcategories for the dropdown
   useEffect(() => {
     const fetchCategoriesWithSubcategories = async () => {
@@ -556,11 +581,11 @@ const Topbar = ({ cartItems = [] }) => {
               </Link>
             </div>
 
-            {/* Login/Logout on Level 2 */}
-            <div className="flex items-center space-x-4">
-              {isLoggedIn && userRole === 'admin' && (
+            {/* Right side - Admin options OR Contact info */}
+            <div className="flex items-center space-x-6">
+              {isLoggedIn && userRole === 'admin' ? (
                 <>
-                  {/* Quote Requests Button */}
+                  {/* Admin Section */}
                   <button 
                     onClick={() => navigate('/adminquotes')}
                     className="group px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent flex items-center hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
@@ -576,7 +601,6 @@ const Topbar = ({ cartItems = [] }) => {
                     Quote Requests
                   </button>
 
-                  {/* Dropdowns Button */}
                   <button 
                     onClick={() => navigate('/dropdowns')}
                     className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
@@ -584,7 +608,6 @@ const Topbar = ({ cartItems = [] }) => {
                     Dropdowns
                   </button>
 
-                  {/* Admin Management Button */}
                   <button 
                     onClick={() => navigate('/adminm')}
                     className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
@@ -592,7 +615,6 @@ const Topbar = ({ cartItems = [] }) => {
                     Admin Management
                   </button>
 
-                  {/* Logout Button */}
                   <button
                     onClick={handleLogout}
                     className="hover:text-green-200 px-3 py-1 text-sm font-medium transition-colors duration-200 flex items-center border-b-2 border-transparent hover:border-green-200 cursor-pointer"
@@ -603,11 +625,37 @@ const Topbar = ({ cartItems = [] }) => {
                     Logout
                   </button>
                 </>
-              )}
+              ) : (
+                <>
+                  {/* Contact Information for non-admin users */}
+                  <div className="flex items-center space-x-6">
+                    {/* Email */}
+                    <button
+                      onClick={handleEmailClick}
+                      className="flex items-center space-x-2 text-gray-200 hover:text-green-300 transition-colors duration-200 cursor-pointer group"
+                    >
+                      <svg className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-sm font-medium border-b border-transparent group-hover:border-green-300">
+                        {companyEmail}
+                      </span>
+                    </button>
 
-              {/* Show nothing when logged out */}
-              {!isLoggedIn && (
-                <div className="w-20"></div>
+                    {/* Phone */}
+                    <button
+                      onClick={handlePhoneClick}
+                      className="flex items-center space-x-2 text-gray-200 hover:text-green-300 transition-colors duration-200 cursor-pointer group"
+                    >
+                      <svg className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <span className="text-sm font-medium border-b border-transparent group-hover:border-green-300">
+                        {companyPhone}
+                      </span>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -700,6 +748,37 @@ const Topbar = ({ cartItems = [] }) => {
                   </div>
                 )}
               </form>
+            </div>
+          )}
+
+          {/* Mobile Contact Info in Green Bar - Show when NOT admin and menu is NOT open */}
+          {!isMenuOpen && (!isLoggedIn || userRole !== 'admin') && (
+            <div className="md:hidden flex items-center justify-center space-x-4 px-4 py-1 overflow-x-auto">
+              {/* Email */}
+              <button
+                onClick={handleEmailClick}
+                className="flex items-center space-x-1 text-gray-200 hover:text-green-300 transition-colors duration-200 cursor-pointer group flex-shrink-0"
+              >
+                <svg className="h-3 w-3 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs font-medium border-b border-transparent group-hover:border-green-300 whitespace-nowrap">
+                  {companyEmail}
+                </span>
+              </button>
+
+              {/* Phone */}
+              <button
+                onClick={handlePhoneClick}
+                className="flex items-center space-x-1 text-gray-200 hover:text-green-300 transition-colors duration-200 cursor-pointer group flex-shrink-0"
+              >
+                <svg className="h-3 w-3 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <span className="text-xs font-medium border-b border-transparent group-hover:border-green-300 whitespace-nowrap">
+                  {companyPhone}
+                </span>
+              </button>
             </div>
           )}
 
@@ -837,6 +916,41 @@ const Topbar = ({ cartItems = [] }) => {
             >
               Contact
             </Link>
+
+            {/* Contact Information in Mobile Menu */}
+            {(!isLoggedIn || userRole !== 'admin') && (
+              <div className="border-t border-gray-200 pt-2">
+                <div className="px-3 py-2 text-sm font-medium text-gray-500">Contact Us</div>
+                
+                {/* Email in Mobile Menu */}
+                <button
+                  onClick={() => {
+                    handleEmailClick();
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left flex items-center cursor-pointer"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {companyEmail}
+                </button>
+
+                {/* Phone in Mobile Menu */}
+                <button
+                  onClick={() => {
+                    handlePhoneClick();
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-gray-800 hover:text-green-600 block px-6 py-2 rounded-md text-base font-medium transition-colors duration-200 w-full text-left flex items-center cursor-pointer"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  {companyPhone}
+                </button>
+              </div>
+            )}
 
             {/* Admin Section in Mobile Menu */}
             {isLoggedIn && userRole === 'admin' && (
