@@ -5,7 +5,7 @@ import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
 import { useCart } from '../context/CartContext';
 
-const Product = () => {
+const Product = ({ categoryItem }) => {
   const { cartItems, addToCart, updateQuantity, totalItems } = useCart();
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,24 +31,64 @@ const Product = () => {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
+  const [allSubCategories, setAllSubCategories] = useState([]); // Store all subcategories globally
 
-  // Parse URL parameters on component mount and when location changes
+  // State for current category/brand/subcategory info
+  const [currentItemInfo, setCurrentItemInfo] = useState(null);
+
+  // Handle categoryItem from SmartItemRouter
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const category = searchParams.get('category') || '';
-    const subCategory = searchParams.get('subCategory') || '';
-    const brand = searchParams.get('brand') || '';
-    
-    const newFilters = {
-      ...filters,
-      category,
-      subCategory,
-      brand
-    };
-    
-    setFilters(newFilters);
-    fetchProducts(newFilters);
-  }, [location.search]);
+    if (categoryItem) {
+      console.log('🎯 Category item received:', categoryItem);
+      console.log('🎯 Category item type:', categoryItem.type);
+      
+      let filterKey = '';
+      let filterValue = '';
+
+      // Normalize the type for comparison
+      const normalizedType = categoryItem.type ? categoryItem.type.toLowerCase() : '';
+      
+      if (normalizedType === 'brand') {
+        filterKey = 'brand';
+        filterValue = categoryItem._id;
+      } else if (normalizedType === 'category') {
+        filterKey = 'category';
+        filterValue = categoryItem._id;
+        // Fetch subcategories for this category
+        if (categoryItem._id) {
+          fetchSubCategories(categoryItem._id);
+        }
+      } else if (normalizedType === 'subcategory') {
+        filterKey = 'subCategory';
+        filterValue = categoryItem._id;
+        // If it's a subcategory, we need to fetch its parent category's subcategories
+        if (categoryItem.category) {
+          fetchSubCategories(categoryItem.category);
+        }
+      }
+
+      console.log(`🎯 Setting filter: ${filterKey} = ${filterValue}`);
+
+      if (filterKey && filterValue) {
+        const newFilters = {
+          ...filters,
+          [filterKey]: filterValue
+        };
+        setFilters(newFilters);
+        fetchProducts(newFilters);
+        
+        // Set the current item info for display
+        setCurrentItemInfo({
+          name: categoryItem.name,
+          descriptionTitle: categoryItem.descriptionTitle,
+          description: categoryItem.description,
+          type: categoryItem.type
+        });
+      } else {
+        console.warn('⚠️ Could not determine filter for category item:', categoryItem);
+      }
+    }
+  }, [categoryItem]);
 
   // Fetch products with filters
   const fetchProducts = async (filterParams = {}) => {
@@ -89,26 +129,42 @@ const Product = () => {
   useEffect(() => {
     fetchBrands();
     fetchCategories();
+    fetchAllSubCategories(); // Fetch all subcategories on initial load
+    
+    // Fetch initial products if no categoryItem
+    if (!categoryItem) {
+      fetchProducts(filters);
+    }
   }, []);
 
   // Fetch all brands, categories, subcategories for filters
   const fetchBrands = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/brand`);
-      const data = await response.json();
-      setBrands(data);
+      if (response.ok) {
+        const data = await response.json();
+        setBrands(Array.isArray(data) ? data : []);
+      } else {
+        setBrands([]);
+      }
     } catch (err) {
       console.error('Failed to fetch brands');
+      setBrands([]);
     }
   };
 
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/category`);
-      const data = await response.json();
-      setCategories(data);
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(Array.isArray(data) ? data : []);
+      } else {
+        setCategories([]);
+      }
     } catch (err) {
       console.error('Failed to fetch categories');
+      setCategories([]);
     }
   };
 
@@ -119,14 +175,36 @@ const Product = () => {
     }
     try {
       const response = await fetch(`${API_BASE_URL}/category/${categoryId}/subcategories`);
-      const data = await response.json();
-      setSubCategories(data);
+      if (response.ok) {
+        const data = await response.json();
+        setSubCategories(Array.isArray(data) ? data : []);
+      } else {
+        setSubCategories([]);
+      }
     } catch (err) {
       console.error('Failed to fetch subcategories');
+      setSubCategories([]);
     }
   };
 
-  // Filter handling
+  // Fetch ALL subcategories for global lookup
+  const fetchAllSubCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/subcategory`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllSubCategories(Array.isArray(data) ? data : []);
+      } else {
+        console.warn('Failed to fetch all subcategories, using empty array');
+        setAllSubCategories([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch all subcategories:', err);
+      setAllSubCategories([]);
+    }
+  };
+
+  // Filter handling - Updated to navigate to clean URLs
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
@@ -140,13 +218,50 @@ const Product = () => {
       }
     }
     
-    const searchParams = new URLSearchParams();
-    if (newFilters.brand) searchParams.set('brand', newFilters.brand);
-    if (newFilters.category) searchParams.set('category', newFilters.category);
-    if (newFilters.subCategory) searchParams.set('subCategory', newFilters.subCategory);
-    
-    const newUrl = searchParams.toString() ? `/shop?${searchParams.toString()}` : '/shop';
-    window.history.pushState({}, '', newUrl);
+    // Navigate to clean URLs based on filter type
+    if (key === 'brand' && value) {
+      const brand = Array.isArray(brands) ? brands.find(b => b._id === value) : null;
+      if (brand) {
+        const dashedName = brand.dashedName || brand.name.toLowerCase().replace(/\s+/g, '-');
+        navigate(`/${dashedName}`);
+        setCurrentItemInfo({
+          name: brand.name,
+          descriptionTitle: brand.descriptionTitle,
+          description: brand.description,
+          type: 'brand'
+        });
+      }
+    } else if (key === 'category' && value) {
+      const category = Array.isArray(categories) ? categories.find(c => c._id === value) : null;
+      if (category) {
+        const dashedName = category.dashedName || category.name.toLowerCase().replace(/\s+/g, '-');
+        navigate(`/${dashedName}`);
+        setCurrentItemInfo({
+          name: category.name,
+          descriptionTitle: category.descriptionTitle,
+          description: category.description,
+          type: 'category'
+        });
+      }
+    } else if (key === 'subCategory' && value) {
+      const currentSub = Array.isArray(subCategories) ? subCategories.find(s => s._id === value) : null;
+      const allSub = Array.isArray(allSubCategories) ? allSubCategories.find(s => s._id === value) : null;
+      const subCategory = currentSub || allSub;
+      if (subCategory) {
+        const dashedName = subCategory.dashedName || subCategory.name.toLowerCase().replace(/\s+/g, '-');
+        navigate(`/${dashedName}`);
+        setCurrentItemInfo({
+          name: subCategory.name,
+          descriptionTitle: subCategory.descriptionTitle,
+          description: subCategory.description,
+          type: 'subcategory'
+        });
+      }
+    } else {
+      // If no filter or cleared filter, navigate to shop
+      navigate('/shop');
+      setCurrentItemInfo(null);
+    }
     
     fetchProducts(newFilters);
   };
@@ -161,8 +276,10 @@ const Product = () => {
     };
     setFilters(resetFilters);
     setSubCategories([]);
+    setCurrentItemInfo(null);
     
-    window.history.pushState({}, '', '/shop');
+    // Navigate to shop when clearing filters
+    navigate('/shop');
     fetchProducts(resetFilters);
   };
 
@@ -198,27 +315,198 @@ const Product = () => {
 
   const displayedProducts = searchQuery ? searchResults : products;
 
-  // Get active filter names for display
+  // Safe array check utility function
+  const safeArrayFind = (array, predicate) => {
+    return Array.isArray(array) ? array.find(predicate) : null;
+  };
+
+  // Get active filter names for display - Updated to use allSubCategories as fallback
   const getActiveFilterNames = () => {
     const activeFilters = [];
+    
     if (filters.brand) {
-      const brand = brands.find(b => b._id === filters.brand);
+      const brand = safeArrayFind(brands, b => b._id === filters.brand);
       if (brand) activeFilters.push(`Brand: ${brand.name}`);
     }
+    
     if (filters.category) {
-      const category = categories.find(c => c._id === filters.category);
+      const category = safeArrayFind(categories, c => c._id === filters.category);
       if (category) activeFilters.push(`Category: ${category.name}`);
     }
+    
     if (filters.subCategory) {
-      const subCategory = subCategories.find(s => s._id === filters.subCategory);
-      if (subCategory) activeFilters.push(`Subcategory: ${subCategory.name}`);
+      // Try to find in current subCategories first, then fallback to allSubCategories
+      let subCategory = safeArrayFind(subCategories, s => s._id === filters.subCategory);
+      if (!subCategory) {
+        subCategory = safeArrayFind(allSubCategories, s => s._id === filters.subCategory);
+      }
+      if (subCategory) {
+        activeFilters.push(`Subcategory: ${subCategory.name}`);
+      } else {
+        // If still not found, show generic subcategory text
+        activeFilters.push(`Subcategory: Selected`);
+      }
     }
+    
     return activeFilters;
   };
 
   const getCartQuantity = (productId) => {
-    const item = cartItems.find(item => item._id === productId);
+    const item = Array.isArray(cartItems) ? cartItems.find(item => item._id === productId) : null;
     return item ? item.quantity : 0;
+  };
+
+  // Handle product navigation with dashed name
+  const handleProductNavigation = (product) => {
+    const dashedName = product.dashedName || product.name.toLowerCase().replace(/\s+/g, '-');
+    navigate(`/${dashedName}`);
+  };
+
+  // Get page title based on what we're filtering by
+  const getPageTitle = () => {
+    if (categoryItem) {
+      return categoryItem.name;
+    }
+    if (filters.brand) {
+      const brand = safeArrayFind(brands, b => b._id === filters.brand);
+      return brand?.name || 'Products';
+    }
+    if (filters.category) {
+      const category = safeArrayFind(categories, c => c._id === filters.category);
+      return category?.name || 'Products';
+    }
+    if (filters.subCategory) {
+      // Try to find in current subCategories first, then fallback to allSubCategories
+      let subCategory = safeArrayFind(subCategories, s => s._id === filters.subCategory);
+      if (!subCategory) {
+        subCategory = safeArrayFind(allSubCategories, s => s._id === filters.subCategory);
+      }
+      return subCategory?.name || 'Products';
+    }
+    return 'All Products';
+  };
+
+  // Get page description based on what we're filtering by
+  const getPageDescription = () => {
+    if (categoryItem?.description) {
+      return categoryItem.description;
+    }
+    if (filters.brand || filters.category || filters.subCategory) {
+      return `Browse our collection of ${getPageTitle().toLowerCase()}`;
+    }
+    return 'Discover our wide range of precision measurement and testing solutions';
+  };
+
+  // Helper function to render formatted description
+  const renderFormattedDescription = (description) => {
+    if (!description) return null;
+    
+    const lines = description.split('\n');
+    const elements = [];
+    let currentList = [];
+    let inList = false;
+    let listType = null; // 'numbered' or 'bulleted'
+
+    const processCurrentList = () => {
+      if (currentList.length > 0) {
+        if (listType === 'numbered') {
+          elements.push(
+            <ol key={elements.length} className="list-decimal pl-6 space-y-1">
+              {currentList}
+            </ol>
+          );
+        } else {
+          elements.push(
+            <ul key={elements.length} className="list-disc pl-6 space-y-1">
+              {currentList}
+            </ul>
+          );
+        }
+        currentList = [];
+      }
+    };
+
+    const renderFormattedLine = (line, index) => {
+      // Handle bold text with **text**
+      if (line.includes('**')) {
+        const parts = line.split('**');
+        return (
+          <span key={index}>
+            {parts.map((part, i) => 
+              i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+            )}
+          </span>
+        );
+      }
+      return line;
+    };
+
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Handle numbered lists (1., 2., etc.)
+      if (trimmedLine.match(/^\d+\.\s/)) {
+        if (!inList || listType !== 'numbered') {
+          processCurrentList();
+          inList = true;
+          listType = 'numbered';
+        }
+        const content = trimmedLine.replace(/^\d+\.\s/, '');
+        currentList.push(
+          <li key={currentList.length} className="text-sm">
+            {renderFormattedLine(content, index)}
+          </li>
+        );
+      }
+      // Handle bullet points
+      else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        if (!inList || listType !== 'bulleted') {
+          processCurrentList();
+          inList = true;
+          listType = 'bulleted';
+        }
+        const content = trimmedLine.substring(2);
+        currentList.push(
+          <li key={currentList.length} className="text-sm">
+            {renderFormattedLine(content, index)}
+          </li>
+        );
+      }
+      // Regular paragraph
+      else if (trimmedLine) {
+        processCurrentList();
+        inList = false;
+        listType = null;
+        
+        elements.push(
+          <p key={elements.length} className="text-sm mb-1">
+            {renderFormattedLine(trimmedLine, index)}
+          </p>
+        );
+      }
+      // Empty line
+      else if (inList) {
+        processCurrentList();
+        inList = false;
+        listType = null;
+      }
+    });
+
+    // Process any remaining list items
+    processCurrentList();
+
+    return <div className="space-y-1">{elements}</div>;
+  };
+
+  // Safe rendering of dropdown options
+  const renderDropdownOptions = (items, getLabel = (item) => item.name) => {
+    if (!Array.isArray(items) || items.length === 0) {
+      return <option value="">No options available</option>;
+    }
+    
+    return items.map(item => (
+      <option key={item._id} value={item._id}>{getLabel(item)}</option>
+    ));
   };
 
   return (
@@ -229,23 +517,15 @@ const Product = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16">
         {/* Header Section */}
         <div className="mb-8">
-          {/* Search Bar */}
+          {/* Page Title */}
           <div className="text-center mb-6">
-            <div className="relative max-w-xl mx-auto">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearch}
-                placeholder="Search products by name, description, or SKU..."
-                className="w-full p-4 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-md"
-              />
-              {searchLoading && (
-                <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-600"></div>
-                </div>
-              )}
-            </div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              {getPageTitle()}
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            </p>
           </div>
+
 
           {/* Active URL Filters Display */}
           {(filters.brand || filters.category || filters.subCategory) && (
@@ -254,17 +534,17 @@ const Product = () => {
               <div className="flex flex-wrap gap-2">
                 {filters.brand && (
                   <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
-                    Brand: {brands.find(b => b._id === filters.brand)?.name}
+                    Brand: {safeArrayFind(brands, b => b._id === filters.brand)?.name || 'Selected'}
                   </span>
                 )}
                 {filters.category && (
                   <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                    Category: {categories.find(c => c._id === filters.category)?.name}
+                    Category: {safeArrayFind(categories, c => c._id === filters.category)?.name || 'Selected'}
                   </span>
                 )}
                 {filters.subCategory && (
                   <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                    Subcategory: {subCategories.find(s => s._id === filters.subCategory)?.name}
+                    Subcategory: {getActiveFilterNames().find(f => f.startsWith('Subcategory'))?.replace('Subcategory: ', '') || 'Selected'}
                   </span>
                 )}
                 <button
@@ -373,9 +653,7 @@ const Product = () => {
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">All Brands</option>
-                  {brands.map(brand => (
-                    <option key={brand._id} value={brand._id}>{brand.name}</option>
-                  ))}
+                  {renderDropdownOptions(brands)}
                 </select>
               </div>
 
@@ -388,9 +666,7 @@ const Product = () => {
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">All Categories</option>
-                  {categories.map(category => (
-                    <option key={category._id} value={category._id}>{category.name}</option>
-                  ))}
+                  {renderDropdownOptions(categories)}
                 </select>
               </div>
 
@@ -404,9 +680,7 @@ const Product = () => {
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="">All Subcategories</option>
-                  {subCategories.map(subCategory => (
-                    <option key={subCategory._id} value={subCategory._id}>{subCategory.name}</option>
-                  ))}
+                  {renderDropdownOptions(subCategories)}
                 </select>
               </div>
 
@@ -459,7 +733,7 @@ const Product = () => {
             {/* Results Count */}
             {!loading && !filterLoading && (
               <div className="mb-4 text-sm text-gray-600">
-                Showing {displayedProducts.length} products
+                Showing {displayedProducts.length} product{displayedProducts.length !== 1 ? 's' : ''}
                 {(filters.brand || filters.category || filters.subCategory) && (
                   <span className="ml-2 text-blue-600 font-medium">
                     (Filtered)
@@ -478,130 +752,165 @@ const Product = () => {
 
             {/* Products Grid */}
             {!loading && !filterLoading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {displayedProducts.length > 0 ? (
-                  displayedProducts.map((product) => {
-                    const cartQuantity = getCartQuantity(product._id);
-                    return (
-                      <Link 
-                        to={`/product/${product._id}`} 
-                        key={product._id} 
-                        className="bg-white shadow-lg rounded-xl overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl block"
-                      >
-                        <div className="relative">
-                          {product.coverPhoto ? (
-                            <img 
-                              src={product.coverPhoto} 
-                              alt={product.name} 
-                              className="w-full h-48 object-cover" 
-                            />
-                          ) : (
-                            <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                              <span className="text-gray-500">No Image</span>
-                            </div>
-                          )}
-                          {product.salePrice && product.salePrice < product.price && (
-                            <span className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
-                              Sale
-                            </span>
-                          )}
-                        </div>
-                        <div className="p-4">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
-                            {product.name}
-                          </h3>
-                          <p className="text-xs text-gray-500 mb-1">
-                            Brand: {product.brand?.name || 'N/A'}
-                          </p>
-                          <p className="text-xs text-gray-500 mb-1">
-                            Category: {product.category?.name || 'N/A'}
-                          </p>
-                          <p className="text-xs text-gray-500 mb-2">
-                            Subcategory: {product.subCategory?.name || 'N/A'}
-                          </p>
-                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                            {product.description}
-                          </p>
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              {product.salePrice && product.salePrice < product.price ? (
-                                <>
-                                  <span className="text-xl font-bold text-red-600">
-                                    ₹{product.salePrice}
-                                  </span>
-                                  <span className="text-sm text-gray-500 line-through ml-2">
-                                    ₹{product.price}
-                                  </span>
-                                </>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
+                  {Array.isArray(displayedProducts) && displayedProducts.length > 0 ? (
+                    displayedProducts.map((product) => {
+                      const cartQuantity = getCartQuantity(product._id);
+                      return (
+                        <div 
+                          key={product._id} 
+                          className="bg-white shadow-lg rounded-xl overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl"
+                        >
+                          <div 
+                            onClick={() => handleProductNavigation(product)}
+                            className="cursor-pointer"
+                          >
+                            <div className="relative">
+                              {product.coverPhoto ? (
+                                <img 
+                                  src={product.coverPhoto} 
+                                  alt={product.name} 
+                                  className="w-full h-48 object-cover" 
+                                />
                               ) : (
-                                <span className="text-xl font-bold text-gray-900">
-                                  ₹{product.price}
+                                <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                                  <span className="text-gray-500">No Image</span>
+                                </div>
+                              )}
+                              {product.salePrice && product.salePrice < product.price && (
+                                <span className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
+                                  Sale
                                 </span>
                               )}
                             </div>
-                            {product.quantity > 0 ? (
-                              <span className="text-xs text-green-600 font-medium">In Stock</span>
-                            ) : (
-                              <span className="text-xs text-red-600 font-medium">Out of Stock</span>
-                            )}
+                            <div className="p-4">
+                              <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
+                                {product.name}
+                              </h3>
+                              <p className="text-xs text-gray-500 mb-1">
+                                Brand: {product.brand?.name || 'N/A'}
+                              </p>
+                              <p className="text-xs text-gray-500 mb-1">
+                                Category: {product.category?.name || 'N/A'}
+                              </p>
+                              <p className="text-xs text-gray-500 mb-2">
+                                Subcategory: {product.subCategory?.name || 'N/A'}
+                              </p>
+                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                                {product.description}
+                              </p>
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  {product.salePrice && product.salePrice < product.price ? (
+                                    <>
+                                      <span className="text-xl font-bold text-red-600">
+                                        ₹{product.salePrice}
+                                      </span>
+                                      <span className="text-sm text-gray-500 line-through ml-2">
+                                        ₹{product.price}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-xl font-bold text-gray-900">
+                                        ₹{product.price}
+                                      </span>
+                                  )}
+                                </div>
+                                {product.quantity > 0 ? (
+                                  <span className="text-xs text-green-600 font-medium">In Stock</span>
+                                ) : (
+                                  <span className="text-xs text-red-600 font-medium">Out of Stock</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
                           
-                          {cartQuantity > 0 ? (
-                            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
+                          <div className="px-4 pb-4">
+                            {cartQuantity > 0 ? (
+                              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(product._id, cartQuantity - 1);
+                                  }}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="px-4 py-1 font-semibold text-gray-800">
+                                  {cartQuantity}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(product._id, cartQuantity + 1);
+                                  }}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
                               <button
                                 onClick={(e) => {
-                                  e.preventDefault();
-                                  updateQuantity(product._id, cartQuantity - 1);
+                                  e.stopPropagation();
+                                  addToCart(product);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
+                                disabled={product.quantity === 0}
+                                className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 cursor-pointer ${
+                                  product.quantity > 0
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
                               >
-                                -
+                                {product.quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
                               </button>
-                              <span className="px-4 py-1 font-semibold text-gray-800">
-                                {cartQuantity}
-                              </span>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  updateQuantity(product._id, cartQuantity + 1);
-                                }}
-                                className="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
-                              >
-                                +
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                addToCart(product);
-                              }}
-                              disabled={product.quantity === 0}
-                              className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 cursor-pointer ${
-                                product.quantity > 0
-                                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
-                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              }`}
-                            >
-                              {product.quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
-                            </button>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </Link>
-                    );
-                  })
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <div className="text-gray-500 text-lg mb-4">No products found</div>
-                    <button
-                      onClick={clearFilters}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
-                    >
-                      Clear Filters
-                    </button>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full text-center py-12">
+                      <div className="text-gray-500 text-lg mb-4">No products found</div>
+                      <button
+                        onClick={clearFilters}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                      >
+                        Clear Filters
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Category/Brand/Subcategory Description Section */}
+                {currentItemInfo && (
+                  <div className="bg-white shadow-lg rounded-xl p-8 border border-gray-200">
+                    <div className="text-left mb-8">
+                      {currentItemInfo.descriptionTitle && (
+                        <h3 className="text-2xl font-semibold text-gray-700 mb-4">
+                          {currentItemInfo.descriptionTitle}
+                        </h3>
+                      )}
+                    </div>
+                    
+                    {currentItemInfo.description && (
+                      <div className="prose prose-lg max-w-none text-gray-600">
+                        {renderFormattedDescription(currentItemInfo.description)}
+                      </div>
+                    )}
+                    
+                    <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">
+                        {currentItemInfo.type === 'brand' && 'Brand'}
+                        {currentItemInfo.type === 'category' && 'Category'}
+                        {currentItemInfo.type === 'subcategory' && 'Subcategory'}
+                      </p>
+                    </div>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </div>

@@ -1,4 +1,6 @@
 import express from 'express';
+
+import { getItemByDashedName, updateDashedNamesForAll, getObjectIdByDashedName } from '../controllers/nameController.js';
 import { addUser, loginUser, getMe,   updateProfile, 
   changePassword , getUsers, deleteUser, updateUserRole, toggleUserStatus, updateUser, changePasswordu
  } from '../controllers/userController.js';
@@ -17,6 +19,16 @@ import {
   updateSubCategory,
   deleteSubCategory
 } from '../controllers/categoryController.js';
+
+import {
+  createPriority,
+  getAllPriorities,
+  getPriorityById,
+  getPrioritiesByType,
+  updatePriority,
+  deletePriority,
+  getPriorityByObject
+} from "../controllers/priorityController.js";
 
 import { 
   addBrand, 
@@ -72,6 +84,19 @@ import {
 
 
 const router = express.Router();
+
+router.get("/find-id/:dashedName", getObjectIdByDashedName);
+router.get("/item/:dashedName", getItemByDashedName);
+router.post("/update-dashed-names", updateDashedNamesForAll);
+
+
+router.post("/p", createPriority);
+router.get("/p", getAllPriorities);
+router.get("/p/type/:type", getPrioritiesByType);
+router.get("/p/object/:type/:objectId", getPriorityByObject);
+router.get("/p/:id", getPriorityById);
+router.put("/p/:id", updatePriority);
+router.delete("/p/:id", deletePriority);
 
 router.post('/user/register', addUser);
 router.post('/login', loginUser);

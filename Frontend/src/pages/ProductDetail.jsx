@@ -180,7 +180,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
 };
 
 const ProductDetail = () => {
-  const { id } = useParams();
+  const { dashedName } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -263,45 +263,61 @@ const ProductDetail = () => {
     Cookies.set('cart', JSON.stringify(cartItems), { expires: 7 });
   }, [cartItems]);
 
-  // Fetch product data
+  // Fetch product data using dashedName
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
         setError('');
 
-        const response = await fetch(`${API_BASE_URL}/products/${id}`);
+        // Step 1: Get product ID using dashedName from unified endpoint
+        const findResponse = await fetch(`${API_BASE_URL}/find-id/${dashedName}`);
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch product');
+        if (!findResponse.ok) {
+          throw new Error('Product not found');
         }
 
-        const data = await response.json();
-        setProduct(data);
-        setSelectedImage(data.coverPhoto || data.images?.[0] || '');
+        const findData = await findResponse.json();
+        
+        if (!findData.success || !findData.data) {
+          throw new Error('Product not found');
+        }
+
+        const productId = findData.data._id;
+
+        // Step 2: Fetch full product details using the ID
+        const productResponse = await fetch(`${API_BASE_URL}/products/${productId}`);
+        
+        if (!productResponse.ok) {
+          throw new Error('Failed to fetch product details');
+        }
+
+        const productData = await productResponse.json();
+        setProduct(productData);
+        setSelectedImage(productData.coverPhoto || productData.images?.[0] || '');
 
         // Set edit form data
         setEditFormData({
-          name: data.name || '',
-          description: data.description || '',
-          tabDescription: data.tabDescription || '',
-          price: data.price || '',
-          salePrice: data.salePrice || '',
-          brand: data.brand?._id || '',
-          category: data.category?._id || '',
-          subCategory: data.subCategory?._id || '',
-          quantity: data.quantity || '',
-          features: data.features?.join(', ') || '',
-          sku: data.sku || '',
-          manufacturer: data.manufacturer || '',
-          modelNo: data.modelNo || '',
-          measuringParameters: data.measuringParameters || ''
+          name: productData.name || '',
+          description: productData.description || '',
+          tabDescription: productData.tabDescription || '',
+          price: productData.price || '',
+          salePrice: productData.salePrice || '',
+          brand: productData.brand?._id || '',
+          category: productData.category?._id || '',
+          subCategory: productData.subCategory?._id || '',
+          quantity: productData.quantity || '',
+          features: productData.features?.join(', ') || '',
+          sku: productData.sku || '',
+          manufacturer: productData.manufacturer || '',
+          modelNo: productData.modelNo || '',
+          measuringParameters: productData.measuringParameters || ''
         });
 
         // Parse specifications
         let specs = [];
         try {
-          const specsData = data.specifications;
+          const specsData = productData.specifications;
           if (specsData && typeof specsData === 'object' && !Array.isArray(specsData)) {
             specs = Object.entries(specsData)
               .filter(([key, value]) => key && value)
@@ -316,8 +332,8 @@ const ProductDetail = () => {
         }
         setEditSpecsFields(specs);
 
-        // Fetch related products
-        fetchRelatedProducts(data._id);
+        // Fetch related products using the actual product ID
+        fetchRelatedProducts(productId);
       } catch (err) {
         console.error('Error fetching product:', err);
         setError(err.message || 'Product not found.');
@@ -326,8 +342,10 @@ const ProductDetail = () => {
       }
     };
 
-    fetchProduct();
-  }, [id]);
+    if (dashedName) {
+      fetchProduct();
+    }
+  }, [dashedName]);
 
   // Fetch dropdown data when edit mode is enabled
   useEffect(() => {
@@ -423,7 +441,7 @@ const ProductDetail = () => {
     try {
       setDownloadLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/${id}/download-pdf`, {
+      const response = await fetch(`${API_BASE_URL}/${product._id}/download-pdf`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -601,7 +619,7 @@ const ProductDetail = () => {
         formData.append('imagesToRemove', JSON.stringify(imagesToRemove));
       }
 
-      const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/products/${product._id}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -666,6 +684,24 @@ const ProductDetail = () => {
   };
 
   const cartQuantity = getCartQuantity();
+
+  // Handle related product click - navigate using dashedName
+  const handleRelatedProductClick = async (relatedProduct) => {
+    try {
+      // Get the dashedName for the related product
+      const findResponse = await fetch(`${API_BASE_URL}/find-id/${relatedProduct.dashedName || relatedProduct.name.toLowerCase().replace(/\s+/g, '-')}`);
+      if (findResponse.ok) {
+        const findData = await findResponse.json();
+        if (findData.success) {
+          navigate(`/product/${findData.data.dashedName}`);
+        }
+      }
+    } catch (err) {
+      console.error('Error navigating to related product:', err);
+      // Fallback to ID if dashedName not found
+      navigate(`/product/${relatedProduct._id}`);
+    }
+  };
 
   if (loading) {
     return (
@@ -1560,7 +1596,7 @@ const ProductDetail = () => {
                   <div 
                     key={relatedProduct._id} 
                     className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-                    onClick={() => navigate(`/product/${relatedProduct._id}`)}
+                    onClick={() => handleRelatedProductClick(relatedProduct)}
                   >
                     <div className="aspect-w-1 aspect-h-1 bg-gray-200">
                       <img

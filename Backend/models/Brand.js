@@ -7,6 +7,11 @@ const brandSchema = new mongoose.Schema({
     trim: true,
     unique: true
   },
+  dashedName: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   descriptionTitle: {
     type: String,
     trim: true,
@@ -19,6 +24,17 @@ const brandSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
+});
+
+// Add middleware to generate dashedName
+brandSchema.pre('save', function(next) {
+  if (this.isModified('name') || !this.dashedName) {
+    this.dashedName = this.name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+  }
+  next();
 });
 
 export default mongoose.model("Brand", brandSchema);
