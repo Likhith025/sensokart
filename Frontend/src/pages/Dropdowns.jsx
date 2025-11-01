@@ -4,6 +4,299 @@ import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
 
+// Enhanced Rich Text Editor Component
+const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." }) => {
+  const textareaRef = React.useRef(null);
+
+  const handleFormat = (format) => {
+    if (!textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = value.substring(start, end);
+    
+    if (!selectedText) return;
+
+    let formattedText = '';
+    let newValue = '';
+
+    switch (format) {
+      case 'bold':
+        formattedText = `**${selectedText}**`;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText}*`;
+        break;
+      case 'underline':
+        formattedText = `__${selectedText}__`;
+        break;
+      default:
+        formattedText = selectedText;
+    }
+
+    newValue = value.substring(0, start) + formattedText + value.substring(end);
+    onChange(newValue);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = start + formattedText.length;
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  };
+
+  const handleList = (type) => {
+    const cursorPos = textareaRef.current?.selectionStart || 0;
+    
+    const textBefore = value.substring(0, cursorPos);
+    const textAfter = value.substring(cursorPos);
+    
+    let newText = '';
+    if (type === 'bullet') {
+      newText = textBefore + (textBefore.endsWith('\n') || !textBefore ? '' : '\n') + '- ' + textAfter;
+    } else if (type === 'number') {
+      newText = textBefore + (textBefore.endsWith('\n') || !textBefore ? '' : '\n') + '1. ' + textAfter;
+    }
+    
+    onChange(newText);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = cursorPos + (type === 'bullet' ? 3 : 4);
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  const handleLineBreak = () => {
+    const cursorPos = textareaRef.current?.selectionStart || 0;
+    const newValue = value.substring(0, cursorPos) + '\n' + value.substring(cursorPos);
+    onChange(newValue);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = cursorPos + 1;
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  return (
+    <div className="border border-gray-300 rounded-md">
+      {/* Enhanced Toolbar */}
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-300 bg-gray-50">
+        <button
+          type="button"
+          onClick={() => handleFormat('bold')}
+          className="px-2 py-1 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-xs font-bold min-w-[32px]"
+          title="Bold (Ctrl+B)"
+        >
+          B
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFormat('italic')}
+          className="px-2 py-1 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-xs italic min-w-[32px]"
+          title="Italic (Ctrl+I)"
+        >
+          I
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFormat('underline')}
+          className="px-2 py-1 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-xs underline min-w-[32px]"
+          title="Underline (Ctrl+U)"
+        >
+          U
+        </button>
+        <div className="w-px h-4 bg-gray-300 mx-1"></div>
+        <button
+          type="button"
+          onClick={() => handleList('bullet')}
+          className="px-2 py-1 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-xs"
+          title="Bullet List"
+        >
+          • List
+        </button>
+        <button
+          type="button"
+          onClick={() => handleList('number')}
+          className="px-2 py-1 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-xs"
+          title="Numbered List"
+        >
+          1. List
+        </button>
+        <button
+          type="button"
+          onClick={handleLineBreak}
+          className="px-2 py-1 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-xs"
+          title="Line Break"
+        >
+          ↵ Break
+        </button>
+      </div>
+      
+      {/* Textarea */}
+      <div className="p-2">
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows="4"
+          className="w-full px-2 py-1 border-0 focus:outline-none focus:ring-0 resize-none text-sm whitespace-pre-wrap font-mono"
+          style={{ lineHeight: '1.4', minHeight: '80px' }}
+        />
+      </div>
+      
+      {/* Live Preview */}
+      <div className="border-t border-gray-200 p-2 bg-gray-50">
+        <label className="text-xs text-gray-500 font-medium mb-1 block">Live Preview:</label>
+        <div className="text-xs mt-1 min-h-[40px] p-2 bg-white rounded border border-gray-200">
+          {renderFormattedDescription(value)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Helper function to render formatted description
+const renderFormattedDescription = (description) => {
+  if (!description) {
+    return <span className="text-gray-400 italic">Preview will appear here...</span>;
+  }
+  
+  const lines = description.split('\n');
+  const elements = [];
+  let currentList = [];
+  let inList = false;
+  let listType = null; // 'numbered' or 'bulleted'
+
+  const processCurrentList = () => {
+    if (currentList.length > 0) {
+      if (listType === 'numbered') {
+        elements.push(
+          <ol key={elements.length} className="list-decimal pl-4 space-y-0.5">
+            {currentList}
+          </ol>
+        );
+      } else {
+        elements.push(
+          <ul key={elements.length} className="list-disc pl-4 space-y-0.5">
+            {currentList}
+          </ul>
+        );
+      }
+      currentList = [];
+    }
+  };
+
+  const renderFormattedLine = (line, index) => {
+    // Handle bold text with **text**
+    let processedLine = line;
+    if (line.includes('**')) {
+      const parts = line.split('**');
+      processedLine = (
+        <span key={index}>
+          {parts.map((part, i) => 
+            i % 2 === 1 ? <strong key={i} className="font-bold">{part}</strong> : part
+          )}
+        </span>
+      );
+    }
+    // Handle italic text with *text*
+    else if (line.includes('*') && !line.startsWith('* ') && !line.match(/^\d+\./)) {
+      const parts = line.split('*');
+      processedLine = (
+        <span key={index}>
+          {parts.map((part, i) => 
+            i % 2 === 1 ? <em key={i} className="italic">{part}</em> : part
+          )}
+        </span>
+      );
+    }
+    // Handle underline with __text__
+    else if (line.includes('__')) {
+      const parts = line.split('__');
+      processedLine = (
+        <span key={index}>
+          {parts.map((part, i) => 
+            i % 2 === 1 ? <u key={i} className="underline">{part}</u> : part
+          )}
+        </span>
+      );
+    }
+    else {
+      processedLine = line;
+    }
+    return processedLine;
+  };
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+    
+    // Handle numbered lists (1., 2., etc.)
+    if (trimmedLine.match(/^\d+\.\s/)) {
+      if (!inList || listType !== 'numbered') {
+        processCurrentList();
+        inList = true;
+        listType = 'numbered';
+      }
+      const content = trimmedLine.replace(/^\d+\.\s/, '');
+      currentList.push(
+        <li key={currentList.length} className="text-xs">
+          {renderFormattedLine(content, index)}
+        </li>
+      );
+    }
+    // Handle bullet points
+    else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+      if (!inList || listType !== 'bulleted') {
+        processCurrentList();
+        inList = true;
+        listType = 'bulleted';
+      }
+      const content = trimmedLine.substring(2);
+      currentList.push(
+        <li key={currentList.length} className="text-xs">
+          {renderFormattedLine(content, index)}
+        </li>
+      );
+    }
+    // Regular paragraph
+    else if (trimmedLine) {
+      processCurrentList();
+      inList = false;
+      listType = null;
+      
+      elements.push(
+        <p key={elements.length} className="text-xs mb-1">
+          {renderFormattedLine(trimmedLine, index)}
+        </p>
+      );
+    }
+    // Empty line
+    else if (inList) {
+      processCurrentList();
+      inList = false;
+      listType = null;
+    }
+    // Empty line between paragraphs
+    else if (line === '' && elements.length > 0) {
+      elements.push(<br key={`br-${index}`} />);
+    }
+  });
+
+  // Process any remaining list items
+  processCurrentList();
+
+  return <div className="space-y-1">{elements}</div>;
+};
+
 const Dropdowns = () => {
   const [activeTab, setActiveTab] = useState('categories');
   const [categories, setCategories] = useState([]);
@@ -93,10 +386,6 @@ const Dropdowns = () => {
     setModalData({});
     setModalError('');
     setModalSuccess('');
-    // Reset form data
-    setNewCategory({ name: '', descriptionTitle: '', description: '' });
-    setNewBrand({ name: '', descriptionTitle: '', description: '' });
-    setNewSubCategory({ name: '', category: '', descriptionTitle: '', description: '' });
   };
 
   const showModalMessage = (type, message) => {
@@ -111,107 +400,6 @@ const Dropdowns = () => {
       setModalError('');
       setModalSuccess('');
     }, 3000);
-  };
-
-  // Helper function to render formatted description
-  const renderFormattedDescription = (description) => {
-    if (!description) return null;
-    
-    const lines = description.split('\n');
-    const elements = [];
-    let currentList = [];
-    let inList = false;
-    let listType = null; // 'numbered' or 'bulleted'
-
-    const processCurrentList = () => {
-      if (currentList.length > 0) {
-        if (listType === 'numbered') {
-          elements.push(
-            <ol key={elements.length} className="list-decimal pl-6 space-y-1">
-              {currentList}
-            </ol>
-          );
-        } else {
-          elements.push(
-            <ul key={elements.length} className="list-disc pl-6 space-y-1">
-              {currentList}
-            </ul>
-          );
-        }
-        currentList = [];
-      }
-    };
-
-    const renderFormattedLine = (line, index) => {
-      // Handle bold text with **text**
-      if (line.includes('**')) {
-        const parts = line.split('**');
-        return (
-          <span key={index}>
-            {parts.map((part, i) => 
-              i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-            )}
-          </span>
-        );
-      }
-      return line;
-    };
-
-    lines.forEach((line, index) => {
-      const trimmedLine = line.trim();
-      
-      // Handle numbered lists (1., 2., etc.)
-      if (trimmedLine.match(/^\d+\.\s/)) {
-        if (!inList || listType !== 'numbered') {
-          processCurrentList();
-          inList = true;
-          listType = 'numbered';
-        }
-        const content = trimmedLine.replace(/^\d+\.\s/, '');
-        currentList.push(
-          <li key={currentList.length} className="text-sm">
-            {renderFormattedLine(content, index)}
-          </li>
-        );
-      }
-      // Handle bullet points
-      else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-        if (!inList || listType !== 'bulleted') {
-          processCurrentList();
-          inList = true;
-          listType = 'bulleted';
-        }
-        const content = trimmedLine.substring(2);
-        currentList.push(
-          <li key={currentList.length} className="text-sm">
-            {renderFormattedLine(content, index)}
-          </li>
-        );
-      }
-      // Regular paragraph
-      else if (trimmedLine) {
-        processCurrentList();
-        inList = false;
-        listType = null;
-        
-        elements.push(
-          <p key={elements.length} className="text-sm mb-1">
-            {renderFormattedLine(trimmedLine, index)}
-          </p>
-        );
-      }
-      // Empty line
-      else if (inList) {
-        processCurrentList();
-        inList = false;
-        listType = null;
-      }
-    });
-
-    // Process any remaining list items
-    processCurrentList();
-
-    return <div className="space-y-1">{elements}</div>;
   };
 
   // Category handlers
@@ -575,7 +763,7 @@ const Dropdowns = () => {
       {modalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 cursor-pointer">
           <div 
-            className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto cursor-default"
+            className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
@@ -677,20 +865,36 @@ const Dropdowns = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Description
                       <span className="text-xs text-gray-500 ml-2">
-                        Supports lists (1., 2., - item), bold (**text**), and line breaks
+                        Use formatting buttons or type directly with markdown syntax
                       </span>
                     </label>
-                    <textarea
+                    <RichTextEditor
                       value={modalData.description || ''}
-                      onChange={(e) => setModalData({ ...modalData, description: e.target.value })}
+                      onChange={(value) => setModalData({ ...modalData, description: value })}
                       placeholder={`Enter description with formatting:
-• Use 1., 2., etc. for numbered lists
-• Use - or * for bullet points
-• Use **text** for bold text
-• Press Enter for new lines`}
-                      rows="6"
-                      className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none font-mono text-xs"
+
+**Bold Text**
+*Italic Text*
+__Underline Text__
+
+- Bullet point 1
+- Bullet point 2
+
+1. Numbered item 1
+2. Numbered item 2
+
+Press Enter for new lines`}
                     />
+                    <div className="mt-2 text-xs text-gray-500">
+                      <strong>Formatting Guide:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-0.5">
+                        <li><strong>Bold:</strong> **text** or use Bold button</li>
+                        <li><em>Italic:</em> *text* or use Italic button</li>
+                        <li><u>Underline:</u> __text__ or use Underline button</li>
+                        <li>Lists: Start with - or 1. 2. 3.</li>
+                        <li>Line breaks: Press Enter</li>
+                      </ul>
+                    </div>
                   </div>
 
                   <div className="flex space-x-3 pt-2">
