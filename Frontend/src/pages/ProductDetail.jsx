@@ -1,62 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
 
-// Fixed Rich Text Editor Component with proper line break handling
-const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." }) => {
-  const textareaRef = React.useRef(null);
+// ──────────────────────────────────────────────────────────────
+//  Rich Text Editor – Fixed Bold/Italic/Underline (Pure JS)
+// ──────────────────────────────────────────────────────────────
+const RichTextEditor = ({ value, onChange, placeholder = 'Enter description...' }) => {
+  const textareaRef = useRef(null);
 
-  const handleFormat = (format) => {
-    if (!textareaRef.current) return;
+  // Convert HTML to plain text for editing
+  const htmlToText = (html) => {
+    if (!html) return '';
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/?(p|div)[^>]*>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"');
+  };
 
+  // Convert plain text back to HTML
+  const textToHtml = (text) => {
+    return text.replace(/\n/g, '<br>');
+  };
+
+  const displayText = htmlToText(value);
+
+  // Apply formatting (bold, italic, underline)
+  const applyTag = (tag) => {
     const textarea = textareaRef.current;
+    if (!textarea) return;
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    
-    // Get the display text (without HTML tags)
-    const displayText = getDisplayText(value);
-    const selectedText = displayText.substring(start, end);
-    
-    if (!selectedText) return;
+    const selected = displayText.substring(start, end);
+    if (!selected) return;
 
-    let formattedText = '';
-    let newValue = '';
+    const before = displayText.substring(0, start);
+    const after = displayText.substring(end);
+    const wrapped = `<${tag}>${selected}</${tag}>`;
 
-    switch (format) {
-      case 'bold':
-        formattedText = `<strong>${selectedText}</strong>`;
-        break;
-      case 'italic':
-        formattedText = `<em>${selectedText}</em>`;
-        break;
-      case 'underline':
-        formattedText = `<u>${selectedText}</u>`;
-        break;
-      default:
-        formattedText = selectedText;
-    }
+    const newDisplay = before + wrapped + after;
+    const newHtml = textToHtml(newDisplay);
 
-    // Replace the selected text with formatted version in the HTML
-    const beforeText = displayText.substring(0, start);
-    const afterText = displayText.substring(end);
-    
-    // Convert the new text back to HTML format
-    const newDisplayText = beforeText + formattedText + afterText;
-    const newHtml = newDisplayText.replace(/\n/g, '<br>');
-    
     onChange(newHtml);
 
+    // Restore cursor position
     setTimeout(() => {
       if (textareaRef.current) {
-        const newCursorPos = start + formattedText.length;
+        const newPos = start + selected.length + tag.length + 2;
         textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        textareaRef.current.setSelectionRange(newPos, newPos);
       }
     }, 0);
   };
-
+  
   const handleList = (type) => {
     const cursorPos = textareaRef.current?.selectionStart || 0;
     const displayText = getDisplayText(value);
@@ -110,47 +113,6 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
     <div className="border border-gray-300 rounded-md">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 p-3 border-b border-gray-300 bg-gray-50">
-        <button
-          type="button"
-          onClick={() => handleFormat('bold')}
-          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white min-w-[40px]"
-          title="Bold"
-        >
-          <strong>B</strong>
-        </button>
-        <button
-          type="button"
-          onClick={() => handleFormat('italic')}
-          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white min-w-[40px]"
-          title="Italic"
-        >
-          <em>I</em>
-        </button>
-        <button
-          type="button"
-          onClick={() => handleFormat('underline')}
-          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white min-w-[40px]"
-          title="Underline"
-        >
-          <u>U</u>
-        </button>
-        <div className="w-px h-6 bg-gray-300"></div>
-        <button
-          type="button"
-          onClick={() => handleList('bullet')}
-          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-sm"
-          title="Bullet List"
-        >
-          • List
-        </button>
-        <button
-          type="button"
-          onClick={() => handleList('number')}
-          className="px-3 py-2 rounded hover:bg-gray-200 cursor-pointer border border-gray-300 bg-white text-sm"
-          title="Numbered List"
-        >
-          1. List
-        </button>
       </div>
       
       {/* Textarea */}
@@ -1584,12 +1546,7 @@ const ProductDetail = () => {
             <div className="mt-8 md:mt-12">
               <div className="flex items-center justify-between mb-4 md:mb-6">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">Related Products</h2>
-                <Link
-                  to={`/shop?category=${product.category?._id}`}
-                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200 cursor-pointer text-sm md:text-base"
-                >
-                  View All
-                </Link>
+
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {relatedProducts.map((relatedProduct) => (
