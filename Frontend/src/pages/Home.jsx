@@ -304,24 +304,28 @@ const Home = () => {
               Discover precision measurement and testing solutions for all your industrial, laboratory, and commercial needs.
             </p>
           </div>
+          </div>
 
-          {userRole === 'admin' && (
-            <div className="text-center mb-6">
-              <button
-                onClick={handleAddProduct}
-                className="px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
-              >
-                Add New Product
-              </button>
-              <Link 
-                to="/priorities" 
-                className="ml-4 px-6 py-3 bg-blue-600 text-white font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
-              >
-                Manage Priorities
-              </Link>
-            </div>
-          )}
-        </div>
+{userRole === 'admin' && (
+  <div className="text-center mb-6">
+    <div className="mb-4">
+      <button
+        onClick={handleAddProduct}
+        className="px-6 py-3 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
+      >
+        Add New Product
+      </button>
+    </div>
+    <div>
+      <Link 
+        to="/priorities" 
+        className="px-6 py-3 bg-blue-600 text-white font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
+      >
+        Manage Priorities
+      </Link>
+    </div>
+  </div>
+)}
 
         {/* Main Content Area */}
         <div className="flex-1">
