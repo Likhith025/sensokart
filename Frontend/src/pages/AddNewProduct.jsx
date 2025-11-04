@@ -433,7 +433,7 @@ const AddNewProduct = () => {
         setSuccess('');
         // Navigate to the new product page or shop
         if (result.product?._id) {
-          navigate(`/product/${result.product._id}`);
+          navigate(`/shop`);
         } else {
           navigate('/shop');
         }
