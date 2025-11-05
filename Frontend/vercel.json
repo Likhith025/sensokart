@@ -1,5 +1,15 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.sensokart.com"
+        }
+      ],
+      "destination": "https://sensokart.com/:1",
+      "permanent": true
+    }
   ]
 }

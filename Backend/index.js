@@ -8,7 +8,7 @@ import fetch from 'node-fetch'; // install if using Node < 18
 // Load environment variables
 dotenv.config();
 
-// Initialize Express app
+// Initialize Expre ss app
 const app = express();
 const PORT = process.env.PORT || 5000;
 
