@@ -3,8 +3,10 @@
     {
       "source": "/(.*)",
       "has": [
-        { "type": "host", "value": "www.sensokart.com" },
-        { "type": "scheme", "value": "http" }
+        {
+          "type": "host",
+          "value": "www.sensokart.com"
+        }
       ],
       "destination": "https://sensokart.com/:1",
       "permanent": true
