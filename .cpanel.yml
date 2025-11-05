@@ -1,0 +1,8 @@
+---
+deployment:
+  tasks:
+    - export DEPLOY_PATH=/home4/sensokart/public_html
+    - echo "Deploying static site..."
+    - unzip -o dist.zip -d $DEPLOY_PATH
+    - cp index.html $DEPLOY_PATH
+    - cp -r assets $DEPLOY_PATH
