@@ -1,14 +1,14 @@
 {
   "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/",
       "has": [
         {
           "type": "host",
           "value": "www.sensokart.com"
         }
       ],
-      "destination": "https://sensokart.com/:1",
+      "destination": "https://sensokart.com",
       "permanent": true
     }
   ]
