@@ -4,7 +4,32 @@ import User from '../models/Users.js';
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Email templates - ALL YOUR ORIGINAL TEMPLATES
+// Validate environment variables on startup
+const validateEmailConfig = () => {
+  const missingVars = [];
+  
+  if (!process.env.RESEND_API_KEY) {
+    missingVars.push('RESEND_API_KEY');
+  }
+  if (!process.env.RESEND_FROM_EMAIL) {
+    missingVars.push('RESEND_FROM_EMAIL');
+  }
+  
+  if (missingVars.length > 0) {
+    console.error('❌ [CONFIG] Missing required environment variables:', missingVars);
+    return false;
+  }
+  
+  console.log('✅ [CONFIG] Email configuration validated');
+  console.log('📧 [CONFIG] From email:', process.env.RESEND_FROM_EMAIL);
+  console.log('🔑 [CONFIG] API Key exists:', !!process.env.RESEND_API_KEY);
+  return true;
+};
+
+// Validate on import
+validateEmailConfig();
+
+// Email templates
 export const emailTemplates = {
   newAdminWelcome: (name, email, password) => ({
     subject: 'Welcome as Admin (Sensokart) - Your Account Has Been Created',
@@ -107,7 +132,7 @@ export const emailTemplates = {
   }),
 
   newQuoteNotification: (enquiry, products) => ({
-    subject: `New Quote Request Received - ${enquiry.enquiryNumber}`,
+    subject: `New Enquiry Received - ${enquiry.enquiryNumber}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -128,13 +153,13 @@ export const emailTemplates = {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎯 New Quote Request Received!</h1>
+            <h1>🎯 New Enquiry Received!</h1>
             <p style="margin: 10px 0 0 0; opacity: 0.9;">Sensokart - Industrial Automation Solutions</p>
           </div>
           
           <div class="content">
             <div class="info-card">
-              <h2 style="margin-top: 0; color: #1f2937;">Quote Details</h2>
+              <h2 style="margin-top: 0; color: #1f2937;">Enquiry Details</h2>
               <p><strong>Enquiry Number:</strong> <span style="font-family: monospace; font-weight: bold; color: #667eea;">${enquiry.enquiryNumber}</span></p>
               <p><strong>Submitted:</strong> ${new Date(enquiry.createdAt).toLocaleString()}</p>
               <p><strong>Status:</strong> <span class="badge">Pending</span></p>
@@ -192,7 +217,7 @@ export const emailTemplates = {
               }).join('')}
               
               <div class="total-section">
-                <h3 style="margin: 0; color: white;">Total Quote Value</h3>
+                <h3 style="margin: 0; color: white;">Total Enquiry Value</h3>
                 <p style="font-size: 24px; font-weight: bold; margin: 10px 0 0 0; color: #10b981;">
                   ₹${products.reduce((total, item) => {
                     const product = item.productData || item.product;
@@ -205,19 +230,19 @@ export const emailTemplates = {
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL}/adminquotes" class="button">
-                📋 View Quote in Admin Panel
+              <a href="${process.env.FRONTEND_URL}/admin/enquiries" class="button">
+                📋 View Enquiry in Admin Panel
               </a>
             </div>
 
             <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0;">
               <p style="margin: 0; color: #92400e; text-align: center;">
-                <strong>⚠️ Action Required:</strong> Please respond to this quote request within 24 hours.
+                <strong>⚠️ Action Required:</strong> Please respond to this enquiry within 24 hours.
               </p>
             </div>
 
             <div class="footer">
-              <p>This is an automated notification from Sensokart Quote System.</p>
+              <p>This is an automated notification from Sensokart Enquiry System.</p>
               <p>Please do not reply to this email.</p>
             </div>
           </div>
@@ -228,14 +253,38 @@ export const emailTemplates = {
   }),
 };
 
-// Send email function using Resend with DEBUGGING
+// Send email function using Resend with COMPREHENSIVE DEBUGGING
 export const sendEmail = async (to, subject, html) => {
   try {
+    console.log('\n=== 📧 EMAIL SENDING PROCESS STARTED ===');
     console.log('🔍 [DEBUG] Starting sendEmail function');
+    
+    // Validate required fields
+    if (!process.env.RESEND_FROM_EMAIL) {
+      const errorMsg = 'RESEND_FROM_EMAIL environment variable is not set';
+      console.error('❌ [DEBUG]', errorMsg);
+      console.log('=== 📧 EMAIL SENDING FAILED ===\n');
+      return { success: false, error: errorMsg };
+    }
+    
+    if (!to) {
+      const errorMsg = 'No recipient specified';
+      console.error('❌ [DEBUG]', errorMsg);
+      console.log('=== 📧 EMAIL SENDING FAILED ===\n');
+      return { success: false, error: errorMsg };
+    }
+
+    if (!subject) {
+      const errorMsg = 'No subject specified';
+      console.error('❌ [DEBUG]', errorMsg);
+      console.log('=== 📧 EMAIL SENDING FAILED ===\n');
+      return { success: false, error: errorMsg };
+    }
+
     console.log('📧 [DEBUG] Email details:', {
+      from: process.env.RESEND_FROM_EMAIL,
       to: to,
       subject: subject,
-      from: "Sensokart <quotes@resend.dev>",
       apiKeyExists: !!process.env.RESEND_API_KEY,
       apiKeyPrefix: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 10) + '...' : 'MISSING'
     });
@@ -244,14 +293,28 @@ export const sendEmail = async (to, subject, html) => {
     console.log('📧 [DEBUG] Processed recipients:', toEmails);
     
     console.log('🔄 [DEBUG] Calling Resend API...');
-    const { data, error } = await resend.emails.send({
+    
+    const emailData = {
       from: process.env.RESEND_FROM_EMAIL,
       to: toEmails,
       subject: subject,
       html: html,
-      reply_to: process.env.RESEND_REPLY_TO,
-      tags: [{ name: 'category', value: 'transactional' }],
+    };
+
+    // Add optional fields if they exist
+    if (process.env.RESEND_REPLY_TO) {
+      emailData.reply_to = process.env.RESEND_REPLY_TO;
+    }
+
+    console.log('📤 [DEBUG] Sending email with data:', {
+      from: emailData.from,
+      to: emailData.to,
+      subject: emailData.subject,
+      hasHtml: !!emailData.html,
+      hasReplyTo: !!emailData.reply_to
     });
+
+    const { data, error } = await resend.emails.send(emailData);
 
     if (error) {
       console.error('❌ [DEBUG] Resend API returned error:', {
@@ -260,6 +323,7 @@ export const sendEmail = async (to, subject, html) => {
         statusCode: error.statusCode,
         details: error
       });
+      console.log('=== 📧 EMAIL SENDING FAILED ===\n');
       return { success: false, error: error.message };
     }
 
@@ -268,6 +332,7 @@ export const sendEmail = async (to, subject, html) => {
       data: data
     });
     console.log('✅ Email sent successfully via Resend');
+    console.log('=== 📧 EMAIL SENDING COMPLETED ===\n');
     return { success: true, messageId: data?.id };
   } catch (error) {
     console.error('💥 [DEBUG] Exception in sendEmail:', {
@@ -275,6 +340,7 @@ export const sendEmail = async (to, subject, html) => {
       stack: error.stack,
       name: error.name
     });
+    console.log('=== 📧 EMAIL SENDING FAILED ===\n');
     return { success: false, error: error.message };
   }
 };
@@ -324,11 +390,12 @@ export const sendProfileUpdateEmail = async (name, email, updatedFields) => {
   return result;
 };
 
-// Send new quote notification to all admins with DEBUGGING
+// Send new enquiry notification to sales@sensokart.com with DEBUGGING
 export const sendNewQuoteNotification = async (enquiry, products) => {
   try {
+    console.log('\n=== 📋 ENQUIRY EMAIL PROCESS STARTED ===');
     console.log('🔍 [DEBUG] Starting sendNewQuoteNotification');
-    console.log('📋 [DEBUG] Quote details:', {
+    console.log('📋 [DEBUG] Enquiry details:', {
       enquiryNumber: enquiry.enquiryNumber,
       customerName: enquiry.name,
       customerEmail: enquiry.email,
@@ -336,26 +403,25 @@ export const sendNewQuoteNotification = async (enquiry, products) => {
       enquiryId: enquiry._id
     });
 
-    const adminEmails = await getAdminEmails();
+    // Send to sales@sensokart.com
+    const salesEmail = 'sales@sensokart.com';
+    console.log('👥 [DEBUG] Sending to sales email:', salesEmail);
     
-    if (adminEmails.length === 0) {
-      console.warn('⚠️ [DEBUG] No active admin emails found');
-      return { success: false, error: 'No admin emails found' };
-    }
-
-    console.log('👥 [DEBUG] Sending to admin emails:', adminEmails);
     const template = emailTemplates.newQuoteNotification(enquiry, products);
+    console.log('📝 [DEBUG] Email template generated with subject:', template.subject);
     
-    console.log('🔄 [DEBUG] Calling sendEmail with quote template');
-    const result = await sendEmail(adminEmails, template.subject, template.html);
+    console.log('🔄 [DEBUG] Calling sendEmail with enquiry template');
+    const result = await sendEmail(salesEmail, template.subject, template.html);
     
     console.log('📤 [DEBUG] sendNewQuoteNotification final result:', result);
+    console.log('=== 📋 ENQUIRY EMAIL PROCESS COMPLETED ===\n');
     return result;
   } catch (error) {
     console.error('❌ [DEBUG] Error in sendNewQuoteNotification:', {
       message: error.message,
       stack: error.stack
     });
+    console.log('=== 📋 ENQUIRY EMAIL PROCESS FAILED ===\n');
     return { success: false, error: error.message };
   }
 };

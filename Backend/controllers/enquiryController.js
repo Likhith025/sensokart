@@ -27,18 +27,25 @@ const generateEnquiryNumber = async () => {
 };
 
 // Create enquiry (User)
+// Create enquiry (User)
 export const createEnquiry = async (req, res) => {
   try {
     const { products, name, email, phone, message, country } = req.body;
 
+    console.log('📝 [ENQUIRY] Starting enquiry creation process');
+    console.log('👤 [ENQUIRY] Customer details:', { name, email, phone, country });
+    console.log('📦 [ENQUIRY] Products count:', products?.length);
+
     // 1. Validate products
     if (!products || !Array.isArray(products) || products.length === 0) {
+      console.log('❌ [ENQUIRY] Validation failed: No products provided');
       return res.status(400).json({ error: 'At least one product is required' });
     }
 
     // Validate each product has valid ID and quantity
     for (const item of products) {
       if (!item.product || !item.quantity || item.quantity < 1) {
+        console.log('❌ [ENQUIRY] Validation failed: Invalid product data', item);
         return res.status(400).json({ error: 'Each product must have a valid ID and quantity ≥ 1' });
       }
     }
@@ -47,10 +54,13 @@ export const createEnquiry = async (req, res) => {
     let attempts = 0;
     const maxAttempts = 3;
 
+    console.log('🔢 [ENQUIRY] Generating enquiry number...');
+
     // 2. Retry logic with MAX attempts (prevents infinite recursion)
     while (attempts < maxAttempts) {
       try {
         const enquiryNumber = await generateEnquiryNumber();
+        console.log('✅ [ENQUIRY] Generated enquiry number:', enquiryNumber);
 
         enquiry = new Enquiry({
           enquiryNumber,
@@ -63,18 +73,27 @@ export const createEnquiry = async (req, res) => {
           country
         });
 
+        console.log('💾 [ENQUIRY] Saving enquiry to database...');
         await enquiry.save();
+        console.log('✅ [ENQUIRY] Enquiry saved successfully with ID:', enquiry._id);
         break; // Success → exit loop
 
       } catch (saveError) {
         if (saveError.code === 11000 && saveError.keyPattern?.enquiryNumber) {
           attempts++;
-          if (attempts >= maxAttempts) throw saveError;
+          console.log(`🔄 [ENQUIRY] Enquiry number conflict, retry attempt ${attempts}/${maxAttempts}`);
+          if (attempts >= maxAttempts) {
+            console.log('❌ [ENQUIRY] Max retry attempts reached for enquiry number');
+            throw saveError;
+          }
           continue; // Retry
         }
+        console.log('❌ [ENQUIRY] Error saving enquiry:', saveError.message);
         throw saveError;
       }
     }
+
+    console.log('📊 [ENQUIRY] Populating product details...');
 
     // 3. Populate ONCE for response (no need to repopulate manually)
     await enquiry.populate({
@@ -85,6 +104,8 @@ export const createEnquiry = async (req, res) => {
         { path: 'subCategory' }
       ]
     });
+
+    console.log('✅ [ENQUIRY] Product details populated');
 
     // Extract populated products for email
     const populatedProducts = enquiry.products.map(item => ({
@@ -103,20 +124,48 @@ export const createEnquiry = async (req, res) => {
       } : null
     }));
 
+    console.log('📧 [ENQUIRY] Starting email sending process...');
+    console.log('👥 [ENQUIRY] Email will be sent to: sales@sensokart.com');
+
     // 4. Send email (fire-and-forget, but log result)
     let emailSent = true;
+    let emailError = null;
+    let emailResult = null;
+    
     try {
-      const emailResult = await sendNewQuoteNotification(enquiry, populatedProducts);
+      console.log('🔄 [ENQUIRY] Calling sendNewQuoteNotification...');
+      emailResult = await sendNewQuoteNotification(enquiry, populatedProducts);
+      
+      console.log('📧 [ENQUIRY] Email sending result:', {
+        success: emailResult.success,
+        error: emailResult.error,
+        messageId: emailResult.messageId
+      });
+      
       if (!emailResult.success) {
-        console.warn('Email failed:', emailResult.error);
+        console.warn('❌ [ENQUIRY] Email sending failed:', emailResult.error);
         emailSent = false;
+        emailError = emailResult.error;
+      } else {
+        console.log('✅ [ENQUIRY] Email sent successfully!');
+        console.log('📨 [ENQUIRY] Email message ID:', emailResult.messageId);
       }
     } catch (emailError) {
-      console.error('Failed to send quote email:', emailError);
+      console.error('💥 [ENQUIRY] Exception while sending email:', emailError);
       emailSent = false;
+      emailError = emailError.message;
     }
 
     // 5. Respond
+    console.log('🎯 [ENQUIRY] Sending response to client');
+    console.log('📊 [ENQUIRY] Final status:', {
+      enquiryId: enquiry._id,
+      enquiryNumber: enquiry.enquiryNumber,
+      emailSent: emailSent,
+      emailError: emailError || 'None',
+      emailMessageId: emailResult?.messageId || 'None'
+    });
+
     res.status(201).json({
       message: 'Enquiry submitted successfully',
       enquiry: {
@@ -126,14 +175,23 @@ export const createEnquiry = async (req, res) => {
       emailSent
     });
 
+    console.log('🏁 [ENQUIRY] Enquiry creation process completed');
+
   } catch (error) {
-    console.error('createEnquiry error:', error);
+    console.error('💥 [ENQUIRY] createEnquiry error:', error);
+    console.error('📝 [ENQUIRY] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    
     res.status(500).json({ 
       error: 'Failed to create enquiry',
       details: error.message 
     });
   }
 };
+
 // Get all enquiries with advanced filtering (Admin)
 export const getEnquiries = async (req, res) => {
   try {

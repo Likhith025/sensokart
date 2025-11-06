@@ -127,9 +127,12 @@ const Home = () => {
     }
   };
 
-  // UPDATED PRODUCT CARD - Wider, Full Title, Mobile 1-col
+  // UPDATED PRODUCT CARD - Fixed quantity buttons issue
   const ProductCard = ({ product, showPriorityBadge = false }) => {
     const cartQuantity = getCartQuantity(product._id);
+
+    // Debug cart quantity
+    console.log(`Product: ${product.name}, Cart Quantity: ${cartQuantity}, Product ID: ${product._id}`);
 
     return (
       <div className="bg-white shadow-lg rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl relative flex flex-col h-full w-full max-w-sm mx-auto">
@@ -200,26 +203,40 @@ const Home = () => {
               )}
             </div>
 
-            {/* Add to Cart / Quantity */}
+            {/* Add to Cart / Quantity - FIXED LOGIC */}
             {cartQuantity > 0 ? (
-              <div className="flex items-center bg-gray-100 rounded-lg overflow-hidden">
+              <div className="flex items-center bg-gray-100 rounded-lg overflow-hidden border border-gray-300">
                 <button
-                  onClick={() => updateQuantity(product._id, cartQuantity - 1)}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 transition"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product._id, cartQuantity - 1);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 transition text-gray-700 font-bold"
                 >
-                  <span className="text-lg font-bold text-gray-700">−</span>
+                  −
                 </button>
-                <span className="px-2 font-bold text-sm text-gray-800">{cartQuantity}</span>
+                <span className="px-3 font-bold text-sm text-gray-800 min-w-8 text-center">
+                  {cartQuantity}
+                </span>
                 <button
-                  onClick={() => updateQuantity(product._id, cartQuantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 transition"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product._id, cartQuantity + 1);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 transition text-gray-700 font-bold"
                 >
-                  <span className="text-lg font-bold text-gray-700">+</span>
+                  +
                 </button>
               </div>
             ) : (
               <button
-                onClick={() => addToCart(product)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addToCart(product);
+                }}
                 disabled={product.quantity === 0}
                 className={`px-4 py-2 rounded-lg font-bold text-sm text-white transition-all ${
                   product.quantity > 0
@@ -321,7 +338,7 @@ const Home = () => {
                   </p>
                 </div>
 
-                {/* Responsive Grid: 1 on mobile, 2 on sm, 3 on lg, 4 on xl */}
+                {/* FIXED: Consistent grid layout */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
                   {section.products.map(product => (
                     <ProductCard key={product._id} product={product} showPriorityBadge={true} />
@@ -332,7 +349,7 @@ const Home = () => {
               </section>
             ))}
 
-            {/* Top Products */}
+            {/* Top Products - FIXED: Same grid layout as priority sections */}
             {topProducts.length > 0 && (
               <section className="top-products">
                 <div className="text-center mb-10">
@@ -343,7 +360,9 @@ const Home = () => {
                     Handpicked bestsellers just for you
                   </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                
+                {/* FIXED: Now same grid layout as priority sections */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
                   {topProducts.map(product => (
                     <ProductCard key={product._id} product={product} />
                   ))}

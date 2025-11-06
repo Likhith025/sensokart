@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
+import { useCart } from '../context/CartContext';
+import Topbar from '../components/TopBar';
 
 // Fixed Rich Text Editor Component with proper line break handling
 const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." }) => {
@@ -182,10 +183,13 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
 const ProductDetail = () => {
   const { dashedName } = useParams();
   const navigate = useNavigate();
+  
+  // PROPERLY USE CART CONTEXT - FIXED
+  const { cartItems, addToCart, updateQuantity } = useCart();
+  
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [cartItems, setCartItems] = useState([]);
   const [selectedImage, setSelectedImage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
@@ -251,17 +255,6 @@ const ProductDetail = () => {
   const coverPhotoInputRef = React.useRef(null);
   const imagesInputRef = React.useRef(null);
   const pdfInputRef = React.useRef(null);
-
-  useEffect(() => {
-    const savedCart = Cookies.get('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-  }, []);
-
-  useEffect(() => {
-    Cookies.set('cart', JSON.stringify(cartItems), { expires: 7 });
-  }, [cartItems]);
 
   // Fetch product data using dashedName
   useEffect(() => {
@@ -404,35 +397,28 @@ const ProductDetail = () => {
     }
   };
 
-  // Cart functionality
-  const addToCart = () => {
-    setCartItems((prev) => {
-      const existing = prev.find(item => item._id === product._id);
-      if (existing) {
-        return prev.map(item =>
-          item._id === product._id ? { ...item, quantity: item.quantity + quantity } : item
-        );
-      }
-      return [...prev, { ...product, quantity }];
-    });
-    setQuantity(1);
+  // FIXED: Cart functionality using context
+  const getCartQuantity = () => {
+    if (!product) return 0;
+    const cartItem = cartItems.find(item => item._id === product._id);
+    return cartItem ? cartItem.quantity : 0;
   };
 
-  const updateCartQuantity = (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      setCartItems((prev) => prev.filter(item => item._id !== productId));
-    } else {
-      setCartItems((prev) =>
-        prev.map(item =>
-          item._id === productId ? { ...item, quantity: newQuantity } : item
-        )
-      );
+  const handleAddToCart = () => {
+    if (product) {
+      addToCart(product);
     }
   };
 
-  const getCartQuantity = () => {
-    const item = cartItems.find(item => item._id === product?._id);
-    return item ? item.quantity : 0;
+  const handleUpdateCartQuantity = (newQuantity) => {
+    if (product) {
+      if (newQuantity === 0) {
+        // If quantity becomes 0, remove from cart
+        updateQuantity(product._id, 0);
+      } else {
+        updateQuantity(product._id, newQuantity);
+      }
+    }
   };
 
   const downloadPdf = async () => {
@@ -706,7 +692,7 @@ const ProductDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Topbar cartItems={cartItems} />
+        <Topbar />
         <div className="pt-20 md:pt-32">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-8 md:pb-16">
             <div className="animate-pulse">
@@ -728,7 +714,7 @@ const ProductDetail = () => {
   if (error || !product) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Topbar cartItems={cartItems} />
+        <Topbar />
         <div className="pt-20 md:pt-32">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-8 md:pb-16 text-center">
             <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
@@ -753,7 +739,7 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Topbar cartItems={cartItems} />
+      <Topbar />
       
       {/* Preview Modal */}
       {showPreview && (
@@ -1399,60 +1385,55 @@ const ProductDetail = () => {
                       <div dangerouslySetInnerHTML={{ __html: product.description }} />
                     </div>
 
+                    {/* FIXED CART CONTROLS SECTION */}
                     <div className="border-t border-gray-200 pt-4 md:pt-6">
                       <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
                         {product.quantity > 0 && (
                           <>
-                            <div className="flex items-center border border-gray-300 rounded-md self-start">
+                            {/* Cart Quantity Controls - FIXED */}
+                            {cartQuantity === 0 ? (
                               <button
-                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                className="px-3 md:px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
+                                onClick={handleAddToCart}
+                                className="py-2 md:py-3 px-4 md:px-6 rounded-md font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                               >
-                                -
+                                Add to Cart
                               </button>
-                              <span className="px-3 md:px-4 py-2 border-l border-r border-gray-300 min-w-8 md:min-w-12 text-center text-sm md:text-base">
-                                {quantity}
-                              </span>
-                              <button
-                                onClick={() => setQuantity(quantity + 1)}
-                                className="px-3 md:px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
-                              >
-                                +
-                              </button>
-                            </div>
+                            ) : (
+                              <div className="flex items-center border border-gray-300 rounded-md bg-white">
+                                <button
+                                  onClick={() => handleUpdateCartQuantity(cartQuantity - 1)}
+                                  className="px-3 md:px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="px-3 md:px-4 py-2 border-l border-r border-gray-300 min-w-8 md:min-w-12 text-center text-sm md:text-base font-medium">
+                                  {cartQuantity}
+                                </span>
+                                <button
+                                  onClick={() => handleUpdateCartQuantity(cartQuantity + 1)}
+                                  className="px-3 md:px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Request Quote Button - Always Visible */}
                             <button
-                              onClick={addToCart}
-                              className="py-2 md:py-3 px-4 md:px-6 rounded-md font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
+                              onClick={() => navigate('/requestquote', { 
+                                state: { 
+                                  productId: product._id, 
+                                  product: product, 
+                                  quantity: cartQuantity > 0 ? cartQuantity : quantity
+                                } 
+                              })}
+                              className="py-2 md:py-3 px-4 md:px-6 rounded-md font-semibold bg-green-600 text-white hover:bg-green-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                             >
-                              Add to Cart
+                              Request Quote
                             </button>
                           </>
                         )}
                       </div>
-
-                      {cartQuantity > 0 && (
-                        <div className="mt-3 md:mt-4 p-3 md:p-4 bg-blue-50 rounded-md">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
-                            <span className="text-blue-800 text-sm md:text-base">
-                              {cartQuantity} {cartQuantity === 1 ? 'item' : 'items'} in cart
-                            </span>
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => updateCartQuantity(product._id, cartQuantity - 1)}
-                                className="px-2 md:px-3 py-1 bg-blue-600 text-white rounded text-xs md:text-sm hover:bg-blue-700 transition-all duration-200 cursor-pointer"
-                              >
-                                -
-                              </button>
-                              <button
-                                onClick={() => updateCartQuantity(product._id, cartQuantity + 1)}
-                                className="px-2 md:px-3 py-1 bg-blue-600 text-white rounded text-xs md:text-sm hover:bg-blue-700 transition-all duration-200 cursor-pointer"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </>
                 )}

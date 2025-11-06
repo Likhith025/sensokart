@@ -34,7 +34,7 @@ const Topbar = ({ cartItems = [] }) => {
 
   // Contact information
   const companyEmail = 'sales@sensokart.com';
-  const companyPhone = '+917601004575';
+  const companyPhone = '+919494122101';
 
   // Handle phone click
   const handlePhoneClick = () => {
