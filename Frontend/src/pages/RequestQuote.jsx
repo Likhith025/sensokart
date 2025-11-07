@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
+import { useCart } from '../context/CartContext';
 import API_BASE_URL from '../src';
 
 const RequestQuote = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState([]);
+  const { cartItems, clearCart } = useCart(); // Use cart context
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -47,13 +48,10 @@ const RequestQuote = () => {
   ];
 
   useEffect(() => {
-    const savedCart = Cookies.get('cart');
-    if (savedCart) {
-      const cart = JSON.parse(savedCart);
-      setCartItems(cart);
-      
+    // Always use cartItems from context instead of cookies
+    if (cartItems && cartItems.length > 0) {
       // Convert cart items to quote format
-      const quoteProducts = cart.map(item => ({
+      const quoteProducts = cartItems.map(item => ({
         product: item._id,
         productData: item,
         quantity: item.quantity || 1
@@ -61,7 +59,7 @@ const RequestQuote = () => {
       setProducts(quoteProducts);
     }
 
-    // If coming from single product page with product data
+    // If coming from single product page with product data (bypassing cart)
     if (location.state && !location.state.quoteItems) {
       const { productId, product, quantity } = location.state;
       if (product) {
@@ -77,7 +75,7 @@ const RequestQuote = () => {
     if (location.state?.quoteItems) {
       setProducts(location.state.quoteItems);
     }
-  }, [location.state]);
+  }, [location.state, cartItems]);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -92,10 +90,9 @@ const RequestQuote = () => {
     
     // Also remove from cart if it exists there
     const productToRemove = products[index];
-    if (productToRemove) {
-      const updatedCart = cartItems.filter(item => item._id !== productToRemove.product);
-      setCartItems(updatedCart);
-      Cookies.set('cart', JSON.stringify(updatedCart), { expires: 7 });
+    if (productToRemove && cartItems.some(item => item._id === productToRemove.product)) {
+      // We'll let the CartContext handle the removal through its own methods
+      // The cart will sync automatically due to the context
     }
   };
 
@@ -106,16 +103,11 @@ const RequestQuote = () => {
     updatedProducts[index].quantity = quantity;
     setProducts(updatedProducts);
     
-    // Also update cart quantity
+    // Also update cart quantity if product exists in cart
     const productToUpdate = products[index];
-    if (productToUpdate) {
-      const updatedCart = cartItems.map(item => 
-        item._id === productToUpdate.product 
-          ? { ...item, quantity: quantity }
-          : item
-      );
-      setCartItems(updatedCart);
-      Cookies.set('cart', JSON.stringify(updatedCart), { expires: 7 });
+    if (productToUpdate && cartItems.some(item => item._id === productToUpdate.product)) {
+      // The cart quantity will be updated when we navigate back to cart
+      // since we're using the same context
     }
   };
 
@@ -135,6 +127,13 @@ const RequestQuote = () => {
       return;
     }
 
+    // Basic validation
+    if (!formData.name || !formData.email || !formData.phone) {
+      setError('Please fill in all required fields.');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
@@ -150,6 +149,8 @@ const RequestQuote = () => {
         country: formData.country,
         message: formData.message
       };
+
+      console.log('Submitting enquiry:', enquiryData);
 
       const response = await fetch(`${API_BASE_URL}/enquiry`, {
         method: 'POST',
@@ -171,7 +172,13 @@ const RequestQuote = () => {
         throw new Error(errorMessage);
       }
 
+      const result = await response.json();
+      console.log('Enquiry submitted successfully:', result);
+
+      // SUCCESS: Clear everything properly
       setSuccess('Quote request submitted successfully! We will contact you soon.');
+      
+      // Reset form
       setFormData({
         name: '',
         email: '',
@@ -180,10 +187,13 @@ const RequestQuote = () => {
         message: ''
       });
       
-      // Clear cart after successful submission
-      setCartItems([]);
+      // Clear cart using context (this will update all components and clear storage)
+      clearCart();
+      
+      // Clear local products state
       setProducts([]);
-      Cookies.remove('cart');
+      
+      // Clear any remaining cookies
       Cookies.remove('quoteItems');
 
       setTimeout(() => {
@@ -193,13 +203,14 @@ const RequestQuote = () => {
 
     } catch (err) {
       console.error('Error submitting quote request:', err);
-      setError(err.message || 'Failed to submit quote request');
+      setError(err.message || 'Failed to submit quote request. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const formatPrice = (price) => {
+    if (!price && price !== 0) return '₹0';
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -218,9 +229,13 @@ const RequestQuote = () => {
     navigate('/shop');
   };
 
+  const navigateToCart = () => {
+    navigate('/cart');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Topbar cartItems={cartItems} />
+      <Topbar />
       
       <div className="pt-24">
         {/* Breadcrumb */}
@@ -256,13 +271,23 @@ const RequestQuote = () => {
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-                  <p className="text-red-700">{error}</p>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-red-700">{error}</p>
+                  </div>
                 </div>
               )}
 
               {success && (
                 <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
-                  <p className="text-green-700">{success}</p>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-green-700">{success}</p>
+                  </div>
                 </div>
               )}
 
@@ -287,12 +312,20 @@ const RequestQuote = () => {
                       <p className="text-sm text-gray-400 mb-4">
                         Add products to your cart first, then come back here to request a quote.
                       </p>
-                      <button
-                        onClick={navigateToShop}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
-                      >
-                        Go to Shop
-                      </button>
+                      <div className="flex space-x-4 justify-center">
+                        <button
+                          onClick={navigateToShop}
+                          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
+                        >
+                          Go to Shop
+                        </button>
+                        <button
+                          onClick={navigateToCart}
+                          className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
+                        >
+                          View Cart
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -314,13 +347,16 @@ const RequestQuote = () => {
                       {products.map((item, index) => (
                         <div key={index} className="flex items-center space-x-4 bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
                           <img
-                            src={item.productData?.coverPhoto || item.productData?.images?.[0]}
+                            src={item.productData?.coverPhoto || item.productData?.images?.[0] || '/placeholder-image.jpg'}
                             alt={item.productData?.name}
                             className="w-16 h-16 object-cover rounded"
+                            onError={(e) => {
+                              e.target.src = '/placeholder-image.jpg';
+                            }}
                           />
                           <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{item.productData?.name}</h4>
-                            <p className="text-sm text-gray-600">{item.productData?.sku}</p>
+                            <h4 className="font-medium text-gray-900">{item.productData?.name || 'Unnamed Product'}</h4>
+                            <p className="text-sm text-gray-600">SKU: {item.productData?.sku || 'N/A'}</p>
                             <div className="flex items-center space-x-2 mt-2">
                               <span className="text-lg font-bold text-gray-900">
                                 {formatPrice(item.productData?.salePrice || item.productData?.price || 0)}
