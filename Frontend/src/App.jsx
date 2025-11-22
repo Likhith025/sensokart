@@ -30,7 +30,7 @@ import SmartItemRouter from './components/SmartItemRouter';
 
 // WhatsApp Button Component (inline)
 const WhatsAppButton = () => {
-  const phoneNumber = '+919494122101';
+  const phoneNumber = '+917601004575';
   const message = 'Hello! I would like to get more information about your products.';
   const [showPing, setShowPing] = useState(false);
 
