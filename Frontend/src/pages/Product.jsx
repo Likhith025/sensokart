@@ -41,13 +41,13 @@ const Product = ({ categoryItem }) => {
     if (categoryItem) {
       console.log('🎯 Category item received:', categoryItem);
       console.log('🎯 Category item type:', categoryItem.type);
-      
+
       let filterKey = '';
       let filterValue = '';
 
       // Normalize the type for comparison
       const normalizedType = categoryItem.type ? categoryItem.type.toLowerCase() : '';
-      
+
       if (normalizedType === 'brand') {
         filterKey = 'brand';
         filterValue = categoryItem._id;
@@ -76,7 +76,7 @@ const Product = ({ categoryItem }) => {
         };
         setFilters(newFilters);
         fetchProducts(newFilters);
-        
+
         // Set the current item info for display
         setCurrentItemInfo({
           name: categoryItem.name,
@@ -95,7 +95,7 @@ const Product = ({ categoryItem }) => {
     try {
       setFilterLoading(true);
       setError('');
-      
+
       const currentFilters = { ...filters, ...filterParams };
       const cleanFilters = {};
       Object.keys(currentFilters).forEach(key => {
@@ -103,19 +103,19 @@ const Product = ({ categoryItem }) => {
           cleanFilters[key] = currentFilters[key];
         }
       });
-      
+
       const params = new URLSearchParams(cleanFilters);
       console.log('🔄 Fetching products with params:', Object.fromEntries(params));
-      
+
       const response = await fetch(`${API_BASE_URL}/products?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch products: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setProducts(data.products || data);
-      
+
     } catch (err) {
       console.error('❌ Error fetching products:', err);
       setError(err.message || 'Failed to load products.');
@@ -130,7 +130,7 @@ const Product = ({ categoryItem }) => {
     fetchBrands();
     fetchCategories();
     fetchAllSubCategories(); // Fetch all subcategories on initial load
-    
+
     // Fetch initial products if no categoryItem
     if (!categoryItem) {
       fetchProducts(filters);
@@ -208,7 +208,7 @@ const Product = ({ categoryItem }) => {
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    
+
     if (key === 'category') {
       newFilters.subCategory = '';
       if (value) {
@@ -217,7 +217,7 @@ const Product = ({ categoryItem }) => {
         setSubCategories([]);
       }
     }
-    
+
     // Navigate to clean URLs based on filter type
     if (key === 'brand' && value) {
       const brand = Array.isArray(brands) ? brands.find(b => b._id === value) : null;
@@ -262,7 +262,7 @@ const Product = ({ categoryItem }) => {
       navigate('/shop');
       setCurrentItemInfo(null);
     }
-    
+
     fetchProducts(newFilters);
   };
 
@@ -277,7 +277,7 @@ const Product = ({ categoryItem }) => {
     setFilters(resetFilters);
     setSubCategories([]);
     setCurrentItemInfo(null);
-    
+
     // Navigate to shop when clearing filters
     navigate('/shop');
     fetchProducts(resetFilters);
@@ -292,7 +292,7 @@ const Product = ({ categoryItem }) => {
       fetchProducts(filters);
       return;
     }
-    
+
     try {
       setSearchLoading(true);
       const response = await fetch(`${API_BASE_URL}/products/search?q=${encodeURIComponent(query)}`);
@@ -323,17 +323,17 @@ const Product = ({ categoryItem }) => {
   // Get active filter names for display - Updated to use allSubCategories as fallback
   const getActiveFilterNames = () => {
     const activeFilters = [];
-    
+
     if (filters.brand) {
       const brand = safeArrayFind(brands, b => b._id === filters.brand);
       if (brand) activeFilters.push(`Brand: ${brand.name}`);
     }
-    
+
     if (filters.category) {
       const category = safeArrayFind(categories, c => c._id === filters.category);
       if (category) activeFilters.push(`Category: ${category.name}`);
     }
-    
+
     if (filters.subCategory) {
       // Try to find in current subCategories first, then fallback to allSubCategories
       let subCategory = safeArrayFind(subCategories, s => s._id === filters.subCategory);
@@ -347,7 +347,7 @@ const Product = ({ categoryItem }) => {
         activeFilters.push(`Subcategory: Selected`);
       }
     }
-    
+
     return activeFilters;
   };
 
@@ -360,6 +360,36 @@ const Product = ({ categoryItem }) => {
   const handleProductNavigation = (product) => {
     const dashedName = product.dashedName || product.name.toLowerCase().replace(/\s+/g, '-');
     navigate(`/${dashedName}`);
+  };
+
+  // Handle product deletion (admin only)
+  const handleDeleteProduct = async (productId, productName, e) => {
+    e.stopPropagation(); // Prevent navigation when clicking delete
+
+    if (!window.confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        alert('Product deleted successfully');
+        // Refresh the products list
+        fetchProducts(filters);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to delete product');
+      }
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      alert('Failed to delete product');
+    }
   };
 
   // Get page title based on what we're filtering by
@@ -400,7 +430,7 @@ const Product = ({ categoryItem }) => {
   // Helper function to render formatted description
   const renderFormattedDescription = (description) => {
     if (!description) return null;
-    
+
     const lines = description.split('\n');
     const elements = [];
     let currentList = [];
@@ -432,7 +462,7 @@ const Product = ({ categoryItem }) => {
         const parts = line.split('**');
         return (
           <span key={index}>
-            {parts.map((part, i) => 
+            {parts.map((part, i) =>
               i % 2 === 1 ? <strong key={i}>{part}</strong> : part
             )}
           </span>
@@ -443,7 +473,7 @@ const Product = ({ categoryItem }) => {
 
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
-      
+
       // Handle numbered lists (1., 2., etc.)
       if (trimmedLine.match(/^\d+\.\s/)) {
         if (!inList || listType !== 'numbered') {
@@ -477,7 +507,7 @@ const Product = ({ categoryItem }) => {
         processCurrentList();
         inList = false;
         listType = null;
-        
+
         elements.push(
           <p key={elements.length} className="text-sm mb-1">
             {renderFormattedLine(trimmedLine, index)}
@@ -503,7 +533,7 @@ const Product = ({ categoryItem }) => {
     if (!Array.isArray(items) || items.length === 0) {
       return <option value="">No options available</option>;
     }
-    
+
     return items.map(item => (
       <option key={item._id} value={item._id}>{getLabel(item)}</option>
     ));
@@ -512,7 +542,7 @@ const Product = ({ categoryItem }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Topbar cartItems={cartItems} />
-      
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16">
         {/* Header Section */}
@@ -703,7 +733,7 @@ const Product = ({ categoryItem }) => {
 
           {/* Overlay for mobile */}
           {showFilterSidebar && (
-            <div 
+            <div
               className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
               onClick={() => setShowFilterSidebar(false)}
             />
@@ -758,20 +788,20 @@ const Product = ({ categoryItem }) => {
                     displayedProducts.map((product) => {
                       const cartQuantity = getCartQuantity(product._id);
                       return (
-                        <div 
-                          key={product._id} 
+                        <div
+                          key={product._id}
                           className="bg-white shadow-lg rounded-xl overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl"
                         >
-                          <div 
+                          <div
                             onClick={() => handleProductNavigation(product)}
                             className="cursor-pointer"
                           >
                             <div className="relative">
                               {product.coverPhoto ? (
-                                <img 
-                                  src={product.coverPhoto} 
-                                  alt={product.name} 
-                                  className="w-full h-48 object-cover" 
+                                <img
+                                  src={product.coverPhoto}
+                                  alt={product.name}
+                                  className="w-full h-48 object-cover"
                                 />
                               ) : (
                                 <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
@@ -813,8 +843,8 @@ const Product = ({ categoryItem }) => {
                                     </>
                                   ) : (
                                     <span className="text-xl font-bold text-gray-900">
-                                        ₹{product.price}
-                                      </span>
+                                      ₹{product.price}
+                                    </span>
                                   )}
                                 </div>
                                 {product.quantity > 0 ? (
@@ -825,7 +855,7 @@ const Product = ({ categoryItem }) => {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="px-4 pb-4">
                             {cartQuantity > 0 ? (
                               <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
@@ -858,13 +888,22 @@ const Product = ({ categoryItem }) => {
                                   addToCart(product);
                                 }}
                                 disabled={product.quantity === 0}
-                                className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 cursor-pointer ${
-                                  product.quantity > 0
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                }`}
+                                className={`w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 cursor-pointer ${product.quantity > 0
+                                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  }`}
                               >
                                 {product.quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
+                              </button>
+                            )}
+
+                            {/* Admin Delete Button */}
+                            {userRole === 'admin' && (
+                              <button
+                                onClick={(e) => handleDeleteProduct(product._id, product.name, e)}
+                                className="w-full mt-2 py-2 px-4 rounded-md font-medium bg-red-600 text-white hover:bg-red-700 transition-colors duration-200 cursor-pointer shadow-md hover:shadow-lg"
+                              >
+                                Delete Product
                               </button>
                             )}
                           </div>
@@ -894,13 +933,13 @@ const Product = ({ categoryItem }) => {
                         </h3>
                       )}
                     </div>
-                    
+
                     {currentItemInfo.description && (
                       <div className="prose prose-lg max-w-none text-gray-600">
                         {renderFormattedDescription(currentItemInfo.description)}
                       </div>
                     )}
-                    
+
                     <div className="mt-8 pt-6 border-t border-gray-200 text-center">
                       <p className="text-sm text-gray-500 uppercase tracking-wide">
                         {currentItemInfo.type === 'brand' && 'Brand'}

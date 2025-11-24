@@ -15,11 +15,11 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
     const textarea = textareaRef.current;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    
+
     // Get the display text (without HTML tags)
     const displayText = getDisplayText(value);
     const selectedText = displayText.substring(start, end);
-    
+
     if (!selectedText) return;
 
     let formattedText = '';
@@ -42,11 +42,11 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
     // Replace the selected text with formatted version in the HTML
     const beforeText = displayText.substring(0, start);
     const afterText = displayText.substring(end);
-    
+
     // Convert the new text back to HTML format
     const newDisplayText = beforeText + formattedText + afterText;
     const newHtml = newDisplayText.replace(/\n/g, '<br>');
-    
+
     onChange(newHtml);
 
     setTimeout(() => {
@@ -61,17 +61,17 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
   const handleList = (type) => {
     const cursorPos = textareaRef.current?.selectionStart || 0;
     const displayText = getDisplayText(value);
-    
+
     const textBefore = displayText.substring(0, cursorPos);
     const textAfter = displayText.substring(cursorPos);
-    
+
     let newText = '';
     if (type === 'bullet') {
       newText = textBefore + (textBefore.endsWith('\n') || !textBefore ? '' : '\n') + '• ' + textAfter;
     } else if (type === 'number') {
       newText = textBefore + (textBefore.endsWith('\n') || !textBefore ? '' : '\n') + '1. ' + textAfter;
     }
-    
+
     // Convert back to HTML
     const newHtml = newText.replace(/\n/g, '<br>');
     onChange(newHtml);
@@ -94,17 +94,17 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
   // Convert HTML back to text with proper line breaks for editing
   const getDisplayText = (html) => {
     if (!html) return '';
-    
+
     // Convert <br> tags back to newlines for editing
     return html.replace(/<br\s*\/?>/gi, '\n')
-               .replace(/<\/p>/gi, '\n\n')
-               .replace(/<\/div>/gi, '\n')
-               .replace(/<[^>]*>/g, '')
-               .replace(/&nbsp;/g, ' ')
-               .replace(/&amp;/g, '&')
-               .replace(/&lt;/g, '<')
-               .replace(/&gt;/g, '>')
-               .replace(/&quot;/g, '"');
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"');
   };
 
   return (
@@ -153,7 +153,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
           1. List
         </button>
       </div>
-      
+
       {/* Textarea */}
       <div className="p-1">
         <textarea
@@ -166,11 +166,11 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
           style={{ lineHeight: '1.6' }}
         />
       </div>
-      
+
       {/* Preview */}
       <div className="border-t border-gray-200 p-3 bg-gray-50">
         <label className="text-xs text-gray-500 font-medium mb-2 block">Preview:</label>
-        <div 
+        <div
           className="text-sm mt-1 prose prose-sm max-w-none"
           style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}
           dangerouslySetInnerHTML={{ __html: value }}
@@ -183,10 +183,10 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
 const ProductDetail = () => {
   const { dashedName } = useParams();
   const navigate = useNavigate();
-  
+
   // PROPERLY USE CART CONTEXT - FIXED
   const { cartItems, addToCart, updateQuantity } = useCart();
-  
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -265,13 +265,13 @@ const ProductDetail = () => {
 
         // Step 1: Get product ID using dashedName from unified endpoint
         const findResponse = await fetch(`${API_BASE_URL}/find-id/${dashedName}`);
-        
+
         if (!findResponse.ok) {
           throw new Error('Product not found');
         }
 
         const findData = await findResponse.json();
-        
+
         if (!findData.success || !findData.data) {
           throw new Error('Product not found');
         }
@@ -280,7 +280,7 @@ const ProductDetail = () => {
 
         // Step 2: Fetch full product details using the ID
         const productResponse = await fetch(`${API_BASE_URL}/products/${productId}`);
-        
+
         if (!productResponse.ok) {
           throw new Error('Failed to fetch product details');
         }
@@ -426,14 +426,14 @@ const ProductDetail = () => {
 
     try {
       setDownloadLoading(true);
-      
+
       const response = await fetch(`${API_BASE_URL}/${product._id}/download-pdf`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`Download failed: ${response.status}`);
       }
@@ -442,22 +442,22 @@ const ProductDetail = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
+
       const contentDisposition = response.headers.get('content-disposition');
       let fileName = product.pdfOriginalName || `${product.name.replace(/\s+/g, '_')}_brochure.pdf`;
-      
+
       if (contentDisposition) {
         const fileNameMatch = contentDisposition.match(/filename="(.+?)"/);
         if (fileNameMatch) fileName = fileNameMatch[1];
       }
-      
+
       link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       window.URL.revokeObjectURL(url);
-      
+
     } catch (error) {
       console.error('❌ PDF download failed:', error);
       alert('Download failed. Please try again later.');
@@ -651,7 +651,7 @@ const ProductDetail = () => {
     try {
       const specs = product?.specifications;
       if (!specs || typeof specs !== 'object') return [];
-      
+
       return Object.entries(specs)
         .filter(([key, value]) => key && value)
         .map(([key, value]) => [key, String(value)]);
@@ -686,6 +686,34 @@ const ProductDetail = () => {
       console.error('Error navigating to related product:', err);
       // Fallback to ID if dashedName not found
       navigate(`/product/${relatedProduct._id}`);
+    }
+  };
+
+  // Handle product deletion (admin only)
+  const handleDeleteProduct = async () => {
+    if (!window.confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/${product._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        alert('Product deleted successfully');
+        // Navigate to shop page after deletion
+        navigate('/shop');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to delete product');
+      }
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      alert('Failed to delete product');
     }
   };
 
@@ -740,7 +768,7 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Topbar />
-      
+
       {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -812,9 +840,8 @@ const ProductDetail = () => {
                 <div className="border-t border-b border-gray-200 py-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">Status:</span>
-                    <span className={`text-sm font-semibold ${
-                      previewData.quantity > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <span className={`text-sm font-semibold ${previewData.quantity > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
                       {previewData.quantity > 0 ? 'In Stock' : 'Out of Stock'}
                     </span>
                   </div>
@@ -921,9 +948,8 @@ const ProductDetail = () => {
                       src={img}
                       alt={`${product.name} view ${idx + 1}`}
                       onClick={() => setSelectedImage(img)}
-                      className={`w-full h-12 md:h-20 object-cover rounded-md cursor-pointer border-2 transition-all duration-200 hover:border-blue-400 hover:scale-105 ${
-                        selectedImage === img ? 'border-blue-500' : 'border-transparent'
-                      }`}
+                      className={`w-full h-12 md:h-20 object-cover rounded-md cursor-pointer border-2 transition-all duration-200 hover:border-blue-400 hover:scale-105 ${selectedImage === img ? 'border-blue-500' : 'border-transparent'
+                        }`}
                     />
                   ))}
                 </div>
@@ -931,14 +957,22 @@ const ProductDetail = () => {
 
               {/* Product Details */}
               <div className="space-y-4 md:space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2">
                   {userRole === 'admin' && (
-                    <button
-                      onClick={() => setIsEditMode(!isEditMode)}
-                      className="px-3 md:px-4 py-1 md:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-xs md:text-sm"
-                    >
-                      {isEditMode ? 'Cancel Edit' : 'Edit Product'}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setIsEditMode(!isEditMode)}
+                        className="px-3 md:px-4 py-1 md:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-xs md:text-sm"
+                      >
+                        {isEditMode ? 'Cancel Edit' : 'Edit Product'}
+                      </button>
+                      <button
+                        onClick={handleDeleteProduct}
+                        className="px-3 md:px-4 py-1 md:py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-xs md:text-sm"
+                      >
+                        Delete Product
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -1081,7 +1115,7 @@ const ProductDetail = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
                         <RichTextEditor
                           value={editFormData.description}
-                          onChange={(value) => setEditFormData({...editFormData, description: value})}
+                          onChange={(value) => setEditFormData({ ...editFormData, description: value })}
                           placeholder="Enter main product description..."
                         />
                       </div>
@@ -1090,7 +1124,7 @@ const ProductDetail = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Tab Description (Sub Description)</label>
                         <RichTextEditor
                           value={editFormData.tabDescription}
-                          onChange={(value) => setEditFormData({...editFormData, tabDescription: value})}
+                          onChange={(value) => setEditFormData({ ...editFormData, tabDescription: value })}
                           placeholder="Enter detailed description for the tab section..."
                         />
                       </div>
@@ -1373,9 +1407,8 @@ const ProductDetail = () => {
                     <div className="border-t border-b border-gray-200 py-3 md:py-4">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-900">Status:</span>
-                        <span className={`text-sm font-semibold ${
-                          product.quantity > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
+                        <span className={`text-sm font-semibold ${product.quantity > 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
                           {product.quantity > 0 ? 'In Stock' : 'Out of Stock'}
                         </span>
                       </div>
@@ -1420,12 +1453,12 @@ const ProductDetail = () => {
 
                             {/* Request Quote Button - Always Visible */}
                             <button
-                              onClick={() => navigate('/requestquote', { 
-                                state: { 
-                                  productId: product._id, 
-                                  product: product, 
+                              onClick={() => navigate('/requestquote', {
+                                state: {
+                                  productId: product._id,
+                                  product: product,
                                   quantity: cartQuantity > 0 ? cartQuantity : quantity
-                                } 
+                                }
                               })}
                               className="py-2 md:py-3 px-4 md:px-6 rounded-md font-semibold bg-green-600 text-white hover:bg-green-700 transition-all duration-200 transform hover:scale-105 cursor-pointer text-sm md:text-base"
                             >
@@ -1449,14 +1482,13 @@ const ProductDetail = () => {
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`py-3 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm capitalize transition-all duration-200 cursor-pointer whitespace-nowrap ${
-                          activeTab === tab
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
+                        className={`py-3 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm capitalize transition-all duration-200 cursor-pointer whitespace-nowrap ${activeTab === tab
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          }`}
                       >
-                        {tab === 'specification' ? 'Specifications' : 
-                         tab === 'download' ? 'Downloads' : tab}
+                        {tab === 'specification' ? 'Specifications' :
+                          tab === 'download' ? 'Downloads' : tab}
                       </button>
                     ))}
                   </nav>
@@ -1482,9 +1514,8 @@ const ProductDetail = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                               <tbody className="divide-y divide-gray-200">
                                 {specificationsEntries.map(([key, value], index) => (
-                                  <tr key={index} className={`hover:bg-gray-100 transition-colors duration-150 cursor-default ${
-                                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                                  }`}>
+                                  <tr key={index} className={`hover:bg-gray-100 transition-colors duration-150 cursor-default ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                    }`}>
                                     <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
                                       {key.replace(/([A-Z])/g, ' $1').trim()}
                                     </td>
@@ -1574,8 +1605,8 @@ const ProductDetail = () => {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {relatedProducts.map((relatedProduct) => (
-                  <div 
-                    key={relatedProduct._id} 
+                  <div
+                    key={relatedProduct._id}
                     className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
                     onClick={() => handleRelatedProductClick(relatedProduct)}
                   >
