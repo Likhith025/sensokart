@@ -626,7 +626,15 @@ const ProductDetail = () => {
       const result = await response.json();
 
       setEditSuccess('Product updated successfully!');
-      setProduct(result.product || result);
+      const updatedProduct = result.product || result;
+      setProduct(updatedProduct);
+
+      // Check if dashedName has changed and redirect if necessary
+      if (updatedProduct.dashedName && updatedProduct.dashedName !== dashedName) {
+        navigate(`/${updatedProduct.dashedName}`, { replace: true });
+        return;
+      }
+
       setIsEditMode(false);
       setShowPreview(false);
 

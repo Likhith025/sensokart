@@ -882,7 +882,7 @@ const Topbar = ({ cartItems = [] }) => {
 
       {/* Mobile Menu - Only show when menu is open and search is not active */}
       {isMenuOpen && !searchQuery && (
-        <div className="md:hidden bg-white shadow-lg border-t border-gray-100 animate-slide-down">
+        <div className="md:hidden bg-white shadow-lg border-t border-gray-100 animate-slide-down max-h-[80vh] overflow-y-auto">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
               to="/"
