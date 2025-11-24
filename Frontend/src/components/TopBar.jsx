@@ -14,10 +14,10 @@ const Topbar = ({ cartItems = [] }) => {
   const [brands, setBrands] = useState([]);
   const [showCategories, setShowCategories] = useState(false);
   const [showBrands, setShowBrands] = useState(false);
-  
+
   // Debounce state for search
   const [debounceTimer, setDebounceTimer] = useState(null);
-  
+
   const navigate = useNavigate();
   const isLoggedIn = !!Cookies.get('authToken');
   const userRole = Cookies.get('userRole')?.toLowerCase();
@@ -68,7 +68,7 @@ const Topbar = ({ cartItems = [] }) => {
           const categoriesResponse = await fetch(`${API_BASE_URL}/category`);
           if (categoriesResponse.ok) {
             const categoriesData = await categoriesResponse.json();
-            
+
             const categoriesWithSubcategories = await Promise.all(
               categoriesData.map(async (category) => {
                 try {
@@ -84,7 +84,7 @@ const Topbar = ({ cartItems = [] }) => {
                 }
               })
             );
-            
+
             setCategories(categoriesWithSubcategories);
           }
         }
@@ -113,7 +113,7 @@ const Topbar = ({ cartItems = [] }) => {
   const handleSearch = async (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    
+
     // Clear previous timer
     if (debounceTimer) {
       clearTimeout(debounceTimer);
@@ -133,7 +133,7 @@ const Topbar = ({ cartItems = [] }) => {
     const newTimer = setTimeout(async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/products/search?q=${encodeURIComponent(query)}`);
-        
+
         if (response.ok) {
           const data = await response.json();
           setSearchResults(data.products || data);
@@ -240,13 +240,13 @@ const Topbar = ({ cartItems = [] }) => {
           <span className="text-gray-400 text-xs">No Image</span>
         </div>
       </div>
-      
+
       {/* Product Info */}
       <div className="flex-1 min-w-0">
         <h4 className="text-sm font-semibold text-gray-900 truncate group-hover:text-green-600 transition-colors duration-200">
           {product.name}
         </h4>
-        
+
         {/* Brand and Category */}
         <div className="flex items-center space-x-2 mt-1">
           {product.brand?.name && (
@@ -282,7 +282,7 @@ const Topbar = ({ cartItems = [] }) => {
               </span>
             )}
           </div>
-          
+
           {product.quantity > 0 ? (
             <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
               In Stock
@@ -357,7 +357,7 @@ const Topbar = ({ cartItems = [] }) => {
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
                     </div>
                   )}
-                  
+
                   {/* Clear search button */}
                   {searchQuery && !searchLoading && (
                     <button
@@ -443,7 +443,7 @@ const Topbar = ({ cartItems = [] }) => {
 
               {/* Mobile Search Icon - Only show when menu is closed */}
               {!isMenuOpen && (
-                <button 
+                <button
                   className="md:hidden text-gray-800 hover:text-green-600 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 cursor-pointer"
                   onClick={handleMobileSearchClick}
                 >
@@ -483,9 +483,9 @@ const Topbar = ({ cartItems = [] }) => {
               >
                 Home
               </Link>
-              
+
               {/* Categories Dropdown */}
-              <div 
+              <div
                 className="categories-container relative"
                 onMouseEnter={() => setShowCategories(true)}
                 onMouseLeave={() => setShowCategories(false)}
@@ -511,7 +511,7 @@ const Topbar = ({ cartItems = [] }) => {
                               {category.name}
                             </h3>
                           </button>
-                          
+
                           {category.subCategories && category.subCategories.length > 0 && (
                             <div className="ml-4 space-y-1">
                               {category.subCategories.map((subCategory) => (
@@ -533,7 +533,7 @@ const Topbar = ({ cartItems = [] }) => {
               </div>
 
               {/* Brands Dropdown */}
-              <div 
+              <div
                 className="brands-container relative"
                 onMouseEnter={() => setShowBrands(true)}
                 onMouseLeave={() => setShowBrands(false)}
@@ -595,14 +595,14 @@ const Topbar = ({ cartItems = [] }) => {
               {isLoggedIn && userRole === 'admin' ? (
                 <>
                   {/* Admin Section */}
-                  <button 
+                  <button
                     onClick={() => navigate('/adminquotes')}
                     className="group px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent flex items-center hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
                   >
-                    <svg 
-                      className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6" 
-                      fill="none" 
-                      viewBox="0 0 24 24" 
+                    <svg
+                      className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -611,14 +611,14 @@ const Topbar = ({ cartItems = [] }) => {
                   </button>
 
                   {/* Contact Enquiries Button */}
-                  <button 
+                  <button
                     onClick={() => navigate('/contactenquiry')}
                     className="group px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent flex items-center hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
                   >
-                    <svg 
-                      className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6" 
-                      fill="none" 
-                      viewBox="0 0 24 24" 
+                    <svg
+                      className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:rotate-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -626,18 +626,25 @@ const Topbar = ({ cartItems = [] }) => {
                     Contact Enquiries
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => navigate('/dropdowns')}
                     className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
                   >
                     Dropdowns
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => navigate('/adminm')}
                     className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
                   >
                     Admin Management
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/admincontent')}
+                    className="px-3 py-1 text-sm font-medium text-gray-200 transition-all duration-300 border-b-2 border-transparent hover:text-green-300 hover:border-green-300 hover:scale-105 cursor-pointer"
+                  >
+                    Content
                   </button>
 
                   <button
@@ -708,7 +715,7 @@ const Topbar = ({ cartItems = [] }) => {
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
                     </div>
                   )}
-                  
+
                   {/* Clear search button for mobile */}
                   {searchQuery && !searchLoading && (
                     <button
@@ -805,20 +812,20 @@ const Topbar = ({ cartItems = [] }) => {
                 </span>
               </button>
             </div>
-          )}          
+          )}
 
           {/* Mobile Admin Options in Green Bar - Show when logged in as admin and menu is NOT open */}
           {!isMenuOpen && isLoggedIn && userRole === 'admin' && (
             <div className="md:hidden flex items-center justify-center space-x-2 px-4 py-1 overflow-x-auto">
               {/* Quote Requests Button */}
-              <button 
+              <button
                 onClick={() => navigate('/adminquotes')}
                 className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 flex items-center cursor-pointer whitespace-nowrap"
               >
-                <svg 
-                  className="h-3 w-3 mr-1" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  className="h-3 w-3 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -827,14 +834,14 @@ const Topbar = ({ cartItems = [] }) => {
               </button>
 
               {/* Contact Enquiries Button */}
-              <button 
+              <button
                 onClick={() => navigate('/contactenquiry')}
                 className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 flex items-center cursor-pointer whitespace-nowrap"
               >
-                <svg 
-                  className="h-3 w-3 mr-1" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  className="h-3 w-3 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -843,7 +850,7 @@ const Topbar = ({ cartItems = [] }) => {
               </button>
 
               {/* Dropdowns Button */}
-              <button 
+              <button
                 onClick={() => navigate('/dropdowns')}
                 className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
               >
@@ -851,7 +858,7 @@ const Topbar = ({ cartItems = [] }) => {
               </button>
 
               {/* Admin Management Button */}
-              <button 
+              <button
                 onClick={() => navigate('/adminm')}
                 className="flex-shrink-0 px-2 py-1 text-xs font-medium text-gray-200 transition-all duration-300 border-b border-transparent hover:text-green-300 hover:border-green-300 cursor-pointer whitespace-nowrap"
               >
@@ -884,7 +891,7 @@ const Topbar = ({ cartItems = [] }) => {
             >
               Home
             </Link>
-            
+
             {/* Mobile Categories */}
             <div className="border-t border-gray-200 pt-2">
               <div className="px-3 py-2 text-sm font-medium text-gray-500">Categories</div>
@@ -962,7 +969,7 @@ const Topbar = ({ cartItems = [] }) => {
             {(!isLoggedIn || userRole !== 'admin') && (
               <div className="border-t border-gray-200 pt-2">
                 <div className="px-3 py-2 text-sm font-medium text-gray-500">Contact Us</div>
-                
+
                 {/* Email in Mobile Menu */}
                 <button
                   onClick={() => {
@@ -997,7 +1004,7 @@ const Topbar = ({ cartItems = [] }) => {
             {isLoggedIn && userRole === 'admin' && (
               <div className="border-t border-gray-200 pt-2">
                 <div className="px-3 py-2 text-sm font-medium text-gray-500">Admin</div>
-                
+
                 {/* Quote Requests in Mobile */}
                 <button
                   onClick={() => {

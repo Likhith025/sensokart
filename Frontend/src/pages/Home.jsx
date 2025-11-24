@@ -4,6 +4,7 @@ import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
 import { useCart } from '../context/CartContext';
+import Content from '../components/Content';
 
 const Home = () => {
   const { cartItems, addToCart, updateQuantity, totalItems } = useCart();
@@ -238,11 +239,10 @@ const Home = () => {
                   addToCart(product);
                 }}
                 disabled={product.quantity === 0}
-                className={`px-4 py-2 rounded-lg font-bold text-sm text-white transition-all ${
-                  product.quantity > 0
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md'
-                    : 'bg-gray-400 cursor-not-allowed'
-                }`}
+                className={`px-4 py-2 rounded-lg font-bold text-sm text-white transition-all ${product.quantity > 0
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md'
+                  : 'bg-gray-400 cursor-not-allowed'
+                  }`}
               >
                 {product.quantity > 0 ? 'Add' : 'Out'}
               </button>
@@ -360,7 +360,7 @@ const Home = () => {
                     Handpicked bestsellers just for you
                   </p>
                 </div>
-                
+
                 {/* FIXED: Now same grid layout as priority sections */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
                   {topProducts.map(product => (
@@ -371,6 +371,9 @@ const Home = () => {
             )}
           </div>
         )}
+
+        {/* Content Section - Above Footer */}
+        <Content />
 
         {/* CTA */}
         <div className="text-center mt-20">

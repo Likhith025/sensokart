@@ -1,17 +1,18 @@
 import express from 'express';
 
 import { getItemByDashedName, updateDashedNamesForAll, getObjectIdByDashedName } from '../controllers/nameController.js';
-import { addUser, loginUser, getMe,   updateProfile, 
-  changePassword , getUsers, deleteUser, updateUserRole, toggleUserStatus, updateUser, changePasswordu
- } from '../controllers/userController.js';
+import {
+  addUser, loginUser, getMe, updateProfile,
+  changePassword, getUsers, deleteUser, updateUserRole, toggleUserStatus, updateUser, changePasswordu
+} from '../controllers/userController.js';
 import { protect, protectAdmin } from '../middlewares/auth.js';
 import { uploadProductImages as uploadMiddleware } from '../middlewares/upload.js';
 
-import { 
-  addCategory, 
-  addSubCategory, 
-  getCategories, 
-  getSubCategoriesByCategory, 
+import {
+  addCategory,
+  addSubCategory,
+  getCategories,
+  getSubCategoriesByCategory,
   getCategoriesWithSubcategories,
   getSubCategories,
   updateCategory,
@@ -30,20 +31,20 @@ import {
   getPriorityByObject
 } from "../controllers/priorityController.js";
 
-import { 
-  addBrand, 
-  getBrands, 
-  getBrandById, 
-  updateBrand, 
-  deleteBrand 
+import {
+  addBrand,
+  getBrands,
+  getBrandById,
+  updateBrand,
+  deleteBrand
 } from '../controllers/brandController.js';
 
-import { 
-  addProduct, 
-  getProducts, 
-  getProductById, 
-  updateProduct, 
-  deleteProduct, 
+import {
+  addProduct,
+  getProducts,
+  getProductById,
+  updateProduct,
+  deleteProduct,
   updateQuantity,
   searchProducts,
   getProductsByCategory,
@@ -54,31 +55,39 @@ import {
 } from '../controllers/productController.js';
 
 
-import { 
-  upsertPage, 
-  getPages, 
-  getPageBySlug, 
+import {
+  upsertPage,
+  getPages,
+  getPageBySlug,
   getPageByTitle,
-  deletePage 
+  deletePage
 } from '../controllers/pageController.js';
 
-import { 
-  createEnquiry, 
-  getEnquiries, 
-  getEnquiryById, 
-  deleteEnquiry ,
+import {
+  createEnquiry,
+  getEnquiries,
+  getEnquiryById,
+  deleteEnquiry,
   updateEnquiry,
   getEnquiryStats,
   respondToEnquiry
 } from '../controllers/enquiryController.js';
 
-import { 
-  createContact, 
-  getContacts, 
-  getContactById, 
-  updateContactStatus, 
-  deleteContact 
+import {
+  createContact,
+  getContacts,
+  getContactById,
+  updateContactStatus,
+  deleteContact
 } from '../controllers/contactController.js';
+
+import {
+  createContent,
+  getAllContent,
+  getContentById,
+  updateContent,
+  deleteContent
+} from '../controllers/contentController.js';
 
 
 
@@ -182,6 +191,16 @@ router.get('/contacts', protectAdmin, getContacts);
 router.get('/contacts/:id', protectAdmin, getContactById);
 router.put('/contacts/:id/status', protectAdmin, updateContactStatus);
 router.delete('/contacts/:id', protectAdmin, deleteContact);
+
+// Content routes
+// Public route
+router.get('/content', getAllContent);
+router.get('/content/:id', getContentById);
+
+// Admin routes
+router.post('/content', protectAdmin, createContent);
+router.put('/content/:id', protectAdmin, updateContent);
+router.delete('/content/:id', protectAdmin, deleteContent);
 
 // Add this to your product routes temporarily
 
