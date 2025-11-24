@@ -70,10 +70,24 @@ const Product = ({ categoryItem }) => {
       console.log(`🎯 Setting filter: ${filterKey} = ${filterValue}`);
 
       if (filterKey && filterValue) {
+        // Start with clean filters to avoid stale state
         const newFilters = {
-          ...filters,
+          brand: '',
+          category: '',
+          subCategory: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
           [filterKey]: filterValue
         };
+
+        // Special handling for subcategory to also set parent category
+        if (normalizedType === 'subcategory' && categoryItem.category) {
+          const parentCategoryId = typeof categoryItem.category === 'object' ? categoryItem.category._id : categoryItem.category;
+          newFilters.category = parentCategoryId;
+          // Ensure subcategories are fetched for this parent so the dropdown works
+          fetchSubCategories(parentCategoryId);
+        }
+
         setFilters(newFilters);
         fetchProducts(newFilters);
 

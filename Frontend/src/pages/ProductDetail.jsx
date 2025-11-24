@@ -215,7 +215,8 @@ const ProductDetail = () => {
     sku: '',
     manufacturer: '',
     modelNo: '',
-    measuringParameters: ''
+    measuringParameters: '',
+    priority: ''
   });
   const [editSpecsFields, setEditSpecsFields] = useState([{ key: '', value: '' }]);
   const [editCoverPhoto, setEditCoverPhoto] = useState(null);
@@ -304,7 +305,8 @@ const ProductDetail = () => {
           sku: productData.sku || '',
           manufacturer: productData.manufacturer || '',
           modelNo: productData.modelNo || '',
-          measuringParameters: productData.measuringParameters || ''
+          measuringParameters: productData.measuringParameters || '',
+          priority: productData.priority || ''
         });
 
         // Parse specifications
@@ -914,10 +916,25 @@ const ProductDetail = () => {
               <span className="text-gray-400">/</span>
               <Link to="/shop" className="text-gray-500 hover:text-gray-700 cursor-pointer whitespace-nowrap">Shop</Link>
               <span className="text-gray-400">/</span>
+
+              {/* Brand */}
+              {product.brand && (
+                <>
+                  <Link
+                    to={`/${product.brand.dashedName || product.brand.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="text-gray-500 hover:text-gray-700 cursor-pointer whitespace-nowrap"
+                  >
+                    {product.brand.name}
+                  </Link>
+                  <span className="text-gray-400">/</span>
+                </>
+              )}
+
+              {/* Category */}
               {product.category && (
                 <>
                   <Link
-                    to={`/shop?category=${product.category._id}`}
+                    to={`/${product.category.dashedName || product.category.name.toLowerCase().replace(/\s+/g, '-')}`}
                     className="text-gray-500 hover:text-gray-700 cursor-pointer whitespace-nowrap"
                   >
                     {product.category.name}
@@ -925,6 +942,20 @@ const ProductDetail = () => {
                   <span className="text-gray-400">/</span>
                 </>
               )}
+
+              {/* SubCategory */}
+              {product.subCategory && (
+                <>
+                  <Link
+                    to={`/${product.subCategory.dashedName || product.subCategory.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="text-gray-500 hover:text-gray-700 cursor-pointer whitespace-nowrap"
+                  >
+                    {product.subCategory.name}
+                  </Link>
+                  <span className="text-gray-400">/</span>
+                </>
+              )}
+
               <span className="text-gray-900 font-medium whitespace-nowrap truncate max-w-[120px] md:max-w-none">
                 {product.name}
               </span>
@@ -1065,6 +1096,21 @@ const ProductDetail = () => {
                             onChange={handleEditInputChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
                             required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Priority
+                            <span className="text-xs text-gray-500 ml-2">(lower = higher priority)</span>
+                          </label>
+                          <input
+                            type="number"
+                            name="priority"
+                            value={editFormData.priority}
+                            onChange={handleEditInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
+                            placeholder="999999"
+                            min="0"
                           />
                         </div>
                       </div>

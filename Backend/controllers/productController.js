@@ -3,25 +3,26 @@ import Brand from '../models/Brand.js';
 import Category from '../models/Category.js';
 import SubCategory from '../models/SubCategory.js';
 import cloudinary from '../config/cloudinary.js';
+import mongoose from 'mongoose';
 
 // Helper function to generate dashed name
 const generateDashedName = (name) => {
-  return name.replace(/\s+/g, '-');
+  return name.toLowerCase().replace(/\s+/g, '-');
 };
+
 // --- Helper: Cloudinary upload from memory buffer ---
 const streamUpload = (fileBuffer, folder, resourceType = 'image', originalName = '') => {
   return new Promise((resolve, reject) => {
-    const uploadOptions = { 
+    const uploadOptions = {
       folder,
       resource_type: resourceType,
-            type: 'upload', // Ensure it's upload type (public)
-      access_mode: 'public' // Explicitly set as public
-
+      type: 'upload',
+      access_mode: 'public'
     };
 
     // For PDF files, preserve the original filename
     if (resourceType === 'raw' && originalName) {
-      const fileName = originalName.replace(/\.[^/.]+$/, ""); // Remove extension
+      const fileName = originalName.replace(/\.[^/.]+$/, "");
       uploadOptions.public_id = fileName;
       uploadOptions.filename_override = originalName;
     }
@@ -54,6 +55,209 @@ const safeParseJSON = (value) => {
     return parsed;
   } catch {
     return value;
+  }
+};
+
+// --- Get Products Controller (Updated with Priority Sorting) ---
+export const getProducts = async (req, res) => {
+  try {
+    const {
+      brand,
+      category,
+      subCategory,
+      minPrice,
+      maxPrice,
+      sortBy = 'priority', // Default to priority sorting
+      sortOrder = 'asc',   // Default to ascending (lower priority first = higher importance)
+      page = 1,
+      limit = 50
+    } = req.query;
+
+    console.log('📦 Filter parameters received:', req.query);
+
+    let filter = { isActive: true };
+    const sortOptions = {};
+
+    // Helper function to find ID by dashedName
+    const findIdByDashedName = async (model, value) => {
+      if (!value) return null;
+
+      // If it's a valid ObjectId, use it directly
+      if (mongoose.Types.ObjectId.isValid(value)) {
+        return value;
+      }
+
+      // Otherwise, search by dashedName
+      const doc = await model.findOne({ dashedName: value });
+      return doc ? doc._id : null;
+    };
+
+    // Build filter object - handle both ID and dashedName
+    if (brand && brand !== '') {
+      console.log('Filtering by brand:', brand);
+      const brandId = await findIdByDashedName(Brand, brand);
+      if (brandId) {
+        filter.brand = brandId;
+      } else {
+        console.log('Brand not found:', brand);
+        return res.json({
+          products: [],
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: 0,
+            totalProducts: 0,
+            hasNext: false,
+            hasPrev: false
+          }
+        });
+      }
+    }
+
+    if (category && category !== '') {
+      console.log('Filtering by category:', category);
+      const categoryId = await findIdByDashedName(Category, category);
+      if (categoryId) {
+        filter.category = categoryId;
+      } else {
+        console.log('Category not found:', category);
+        return res.json({
+          products: [],
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: 0,
+            totalProducts: 0,
+            hasNext: false,
+            hasPrev: false
+          }
+        });
+      }
+    }
+
+    if (subCategory && subCategory !== '') {
+      console.log('Filtering by subCategory:', subCategory);
+      const subCategoryId = await findIdByDashedName(SubCategory, subCategory);
+      if (subCategoryId) {
+        filter.subCategory = subCategoryId;
+      } else {
+        console.log('SubCategory not found:', subCategory);
+        return res.json({
+          products: [],
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: 0,
+            totalProducts: 0,
+            hasNext: false,
+            hasPrev: false
+          }
+        });
+      }
+    }
+
+    // Price filtering - handle both price and salePrice
+    if (minPrice || maxPrice) {
+      const priceConditions = [];
+
+      // For products with salePrice
+      if (minPrice && maxPrice) {
+        priceConditions.push({
+          salePrice: {
+            $exists: true,
+            $ne: null,
+            $gte: parseFloat(minPrice),
+            $lte: parseFloat(maxPrice)
+          }
+        });
+      } else if (minPrice) {
+        priceConditions.push({
+          salePrice: {
+            $exists: true,
+            $ne: null,
+            $gte: parseFloat(minPrice)
+          }
+        });
+      } else if (maxPrice) {
+        priceConditions.push({
+          salePrice: {
+            $exists: true,
+            $ne: null,
+            $lte: parseFloat(maxPrice)
+          }
+        });
+      }
+
+      // For products without salePrice (use regular price)
+      if (minPrice && maxPrice) {
+        priceConditions.push({
+          $and: [
+            { $or: [{ salePrice: { $exists: false } }, { salePrice: null }] },
+            { price: { $gte: parseFloat(minPrice), $lte: parseFloat(maxPrice) } }
+          ]
+        });
+      } else if (minPrice) {
+        priceConditions.push({
+          $and: [
+            { $or: [{ salePrice: { $exists: false } }, { salePrice: null }] },
+            { price: { $gte: parseFloat(minPrice) } }
+          ]
+        });
+      } else if (maxPrice) {
+        priceConditions.push({
+          $and: [
+            { $or: [{ salePrice: { $exists: false } }, { salePrice: null }] },
+            { price: { $lte: parseFloat(maxPrice) } }
+          ]
+        });
+      }
+
+      if (priceConditions.length > 0) {
+        filter.$or = priceConditions;
+      }
+    }
+
+    // Sort options - Priority is always first and ASCENDING (lower number = higher priority)
+    sortOptions.priority = 1; // Primary sort by priority ASCENDING
+
+    // Secondary sort based on user preference
+    if (sortBy === 'price') {
+      sortOptions.price = sortOrder === 'desc' ? -1 : 1;
+    } else if (sortBy === 'name') {
+      sortOptions.name = sortOrder === 'desc' ? -1 : 1;
+    } else if (sortBy === 'rating') {
+      sortOptions['ratings.average'] = sortOrder === 'desc' ? -1 : 1;
+    } else if (sortBy === 'createdAt') {
+      sortOptions.createdAt = sortOrder === 'desc' ? -1 : 1;
+    }
+    // If sortBy is 'priority', we already set it above
+
+    const skip = (page - 1) * limit;
+
+    console.log('🔍 Final filter:', JSON.stringify(filter, null, 2));
+    console.log('📊 Sort options:', JSON.stringify(sortOptions, null, 2));
+
+    const products = await Product.find(filter)
+      .populate('brand category subCategory')
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Product.countDocuments(filter);
+
+    console.log(`✅ Found ${products.length} products out of ${total} total`);
+    console.log(`📊 Priority range in results: ${Math.min(...products.map(p => p.priority))} to ${Math.max(...products.map(p => p.priority))}`);
+
+    res.json({
+      products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalProducts: total,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error in getProducts:', error);
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -128,8 +332,7 @@ export const updateProduct = async (req, res) => {
 
     // --- Handle dashedName generation ---
     if (updateData.name && updateData.name !== product.name) {
-      // Generate new dashedName when product name changes
-      updateData.dashedName = updateData.name.replace(/\s+/g, '-');
+      updateData.dashedName = generateDashedName(updateData.name);
     }
 
     /* ---------------------------------------------------- */
@@ -159,10 +362,10 @@ export const updateProduct = async (req, res) => {
       updateData.images = [...product.images, ...newImageUrls];
     }
 
-    // Handle PDF upload - WITH ORIGINAL FILENAME
+    // Handle PDF upload
     if (req.files?.pdf) {
       console.log('📄 Uploading new PDF...');
-      
+
       // Delete old PDF if exists
       if (product.pdf) {
         const oldPdfPublicId = product.pdf.split('/').pop().split('.')[0];
@@ -173,20 +376,14 @@ export const updateProduct = async (req, res) => {
       }
 
       const pdfFile = req.files.pdf[0];
-      console.log('📄 PDF file details:', {
-        originalname: pdfFile.originalname,
-        mimetype: pdfFile.mimetype,
-        size: pdfFile.size
-      });
-
       const pdfResult = await streamUpload(
         pdfFile.buffer,
         'products/pdfs',
         'raw',
-        pdfFile.originalname // Pass original filename
+        pdfFile.originalname
       );
       updateData.pdf = pdfResult.secure_url;
-      updateData.pdfOriginalName = pdfFile.originalname; // Store original name
+      updateData.pdfOriginalName = pdfFile.originalname;
       console.log('✅ PDF uploaded successfully:', updateData.pdf);
     }
 
@@ -233,6 +430,7 @@ export const updateProduct = async (req, res) => {
     if (updateData.price) updateData.price = parseFloat(updateData.price);
     if (updateData.salePrice) updateData.salePrice = parseFloat(updateData.salePrice);
     if (updateData.quantity) updateData.quantity = parseInt(updateData.quantity);
+    if (updateData.priority !== undefined) updateData.priority = parseInt(updateData.priority);
 
     console.log('🔄 Final update data:', JSON.stringify(updateData, null, 2));
 
@@ -251,7 +449,6 @@ export const updateProduct = async (req, res) => {
   } catch (error) {
     console.error('❌ Error updating product:', error);
     if (error.code === 11000) {
-      // Handle duplicate dashedName error
       if (error.keyPattern && error.keyPattern.dashedName) {
         return res.status(400).json({ error: 'Product name already exists. Please choose a different name.' });
       }
@@ -261,8 +458,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// --- Add Product Controller (Updated) ---
-// --- Add Product Controller (Updated) ---
+// --- Add Product Controller ---
 export const addProduct = async (req, res) => {
   try {
     const {
@@ -280,7 +476,8 @@ export const addProduct = async (req, res) => {
       sku,
       manufacturer,
       modelNo,
-      measuringParameters
+      measuringParameters,
+      priority = 999999 // Default to low priority if not specified
     } = req.body;
 
     console.log('📦 Form data received:', req.body);
@@ -318,12 +515,6 @@ export const addProduct = async (req, res) => {
       console.log('Uploading PDF...');
       const pdfFile = req.files.pdf[0];
       pdfOriginalName = pdfFile.originalname;
-      
-      console.log('📄 PDF file details:', {
-        originalname: pdfFile.originalname,
-        mimetype: pdfFile.mimetype,
-        size: pdfFile.size
-      });
 
       const pdfResult = await streamUpload(
         pdfFile.buffer,
@@ -345,7 +536,7 @@ export const addProduct = async (req, res) => {
     // ✅ Create new product
     const product = new Product({
       name,
-      dashedName, // ADD THIS
+      dashedName,
       description,
       tabDescription: tabDescription || '',
       price: parseFloat(price),
@@ -363,7 +554,8 @@ export const addProduct = async (req, res) => {
       sku,
       manufacturer,
       modelNo,
-      measuringParameters
+      measuringParameters,
+      priority: priority ? parseInt(priority) : 999999
     });
 
     await product.save();
@@ -387,7 +579,239 @@ export const addProduct = async (req, res) => {
   }
 };
 
-// This will work after enabling PDF delivery
+// --- Get Products by Category (Updated with Priority Sorting) ---
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { categorySlug } = req.params;
+    const { brand, minPrice, maxPrice, sortBy, page = 1, limit = 12 } = req.query;
+
+    // Find category by slug or ID
+    const category = await Category.findOne({
+      $or: [
+        { _id: categorySlug },
+        { slug: categorySlug }
+      ]
+    });
+
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    let filter = {
+      isActive: true,
+      category: category._id
+    };
+
+    if (brand) filter.brand = brand;
+
+    // Price filtering
+    if (minPrice || maxPrice) {
+      filter.$or = [
+        {
+          $and: [
+            { salePrice: { $exists: true, $ne: null } },
+            { salePrice: { $gte: parseFloat(minPrice || 0), $lte: parseFloat(maxPrice || 999999) } }
+          ]
+        },
+        {
+          $and: [
+            { salePrice: { $exists: false } },
+            { price: { $gte: parseFloat(minPrice || 0), $lte: parseFloat(maxPrice || 999999) } }
+          ]
+        }
+      ];
+    }
+
+    // Sort options - Priority first (ascending), then secondary sort
+    const sortOptions = { priority: 1 }; // Primary sort by priority (ascending)
+    if (sortBy === 'price_asc') sortOptions.price = 1;
+    else if (sortBy === 'price_desc') sortOptions.price = -1;
+    else if (sortBy === 'name') sortOptions.name = 1;
+    else sortOptions.createdAt = -1;
+
+    const skip = (page - 1) * limit;
+
+    const products = await Product.find(filter)
+      .populate('brand category subCategory')
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Product.countDocuments(filter);
+    const brands = await Product.distinct('brand', filter);
+    const brandDetails = await Brand.find({ _id: { $in: brands } });
+
+    // Get price range for filters
+    const priceStats = await Product.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' }
+        }
+      }
+    ]);
+
+    res.json({
+      products,
+      category,
+      filters: {
+        brands: brandDetails,
+        priceRange: priceStats[0] || { minPrice: 0, maxPrice: 0 }
+      },
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalProducts: total
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// --- Get Related Products (Updated with Priority Sorting) ---
+export const getRelatedProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findById(id).populate('category brand');
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const relatedProducts = await Product.find({
+      _id: { $ne: id },
+      $or: [
+        { category: product.category },
+        { brand: product.brand }
+      ],
+      isActive: true
+    })
+      .populate('brand category')
+      .limit(8)
+      .sort({ priority: 1, createdAt: -1 }); // Priority first
+
+    res.json(relatedProducts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// --- Search Products (Updated with Priority Sorting) ---
+export const searchProducts = async (req, res) => {
+  try {
+    const { q, category, brand, minPrice, maxPrice, page = 1, limit = 12 } = req.query;
+
+    if (!q) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    let filter = {
+      isActive: true,
+      $or: [
+        { name: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { tabDescription: { $regex: q, $options: 'i' } },
+        { sku: { $regex: q, $options: 'i' } },
+        { 'brand.name': { $regex: q, $options: 'i' } },
+        { 'category.name': { $regex: q, $options: 'i' } }
+      ]
+    };
+
+    if (category) filter.category = category;
+    if (brand) filter.brand = brand;
+
+    // Price filtering
+    if (minPrice || maxPrice) {
+      filter.$and = filter.$and || [];
+      filter.$and.push({
+        $or: [
+          {
+            salePrice: {
+              $gte: parseFloat(minPrice || 0),
+              $lte: parseFloat(maxPrice || 999999)
+            }
+          },
+          {
+            price: {
+              $gte: parseFloat(minPrice || 0),
+              $lte: parseFloat(maxPrice || 999999)
+            }
+          }
+        ]
+      });
+    }
+
+    const skip = (page - 1) * limit;
+
+    const products = await Product.find(filter)
+      .populate('brand category subCategory')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ priority: 1, createdAt: -1 }); // Priority first
+
+    const total = await Product.countDocuments(filter);
+
+    res.json({
+      products,
+      searchQuery: q,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalProducts: total
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// --- Get Products by Brand (Updated with Priority Sorting) ---
+export const getProductsByBrand = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const { page = 1, limit = 12, sortBy = 'priority' } = req.query;
+
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ error: 'Brand not found' });
+    }
+
+    const skip = (page - 1) * limit;
+    const sortOptions = { priority: 1 }; // Primary sort by priority
+    if (sortBy === 'price') sortOptions.price = -1;
+    else if (sortBy === 'name') sortOptions.name = 1;
+    else sortOptions.createdAt = -1;
+
+    const products = await Product.find({
+      brand: brandId,
+      isActive: true
+    })
+      .populate('brand category subCategory')
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Product.countDocuments({ brand: brandId, isActive: true });
+
+    res.json({
+      products,
+      brand,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalProducts: total
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// --- Other controller functions (keep existing) ---
 export const downloadProductPdf = async (req, res) => {
   try {
     const { id } = req.params;
@@ -397,14 +821,13 @@ export const downloadProductPdf = async (req, res) => {
       return res.status(404).json({ error: 'PDF not found' });
     }
 
-    // This redirect will work once PDF delivery is enabled
     res.redirect(product.pdf);
-    
   } catch (error) {
     console.error('❌ Error downloading PDF:', error);
     res.status(500).json({ error: 'Failed to download PDF' });
   }
 };
+
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -416,7 +839,7 @@ export const deleteProduct = async (req, res) => {
 
     // Delete images from Cloudinary
     const deletePromises = [];
-    
+
     if (product.coverPhoto) {
       const publicId = product.coverPhoto.split('/').pop().split('.')[0];
       deletePromises.push(cloudinary.uploader.destroy(`products/cover/${publicId}`));
@@ -448,15 +871,12 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-
-// --- Get product by dashedName Controller ---
 export const getProductByName = async (req, res) => {
   try {
     const { name } = req.params;
-    
+
     console.log('🔍 Searching for product with dashedName:', name);
-    
-    // Find by exact dashedName match
+
     const product = await Product.findOne({
       dashedName: name,
       isActive: true
@@ -470,8 +890,8 @@ export const getProductByName = async (req, res) => {
     console.log('✅ Product found:', product.name);
 
     // Increment view count
-    await Product.findByIdAndUpdate(product._id, { 
-      $inc: { 'ratings.count': 1 } 
+    await Product.findByIdAndUpdate(product._id, {
+      $inc: { 'ratings.count': 1 }
     });
 
     res.json(product);
@@ -480,127 +900,7 @@ export const getProductByName = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-// Get products by category with filters
-export const getProductsByCategory = async (req, res) => {
-  try {
-    const { categorySlug } = req.params;
-    const { brand, minPrice, maxPrice, sortBy, page = 1, limit = 12 } = req.query;
-    
-    // Find category by slug or ID
-    const category = await Category.findOne({
-      $or: [
-        { _id: categorySlug },
-        { slug: categorySlug }
-      ]
-    });
-    
-    if (!category) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
-    
-    let filter = { 
-      isActive: true, 
-      category: category._id 
-    };
-    
-    if (brand) filter.brand = brand;
-    
-    // Price filtering
-    if (minPrice || maxPrice) {
-      filter.$or = [
-        { 
-          $and: [
-            { salePrice: { $exists: true, $ne: null } },
-            { salePrice: { $gte: parseFloat(minPrice || 0), $lte: parseFloat(maxPrice || 999999) } }
-          ]
-        },
-        { 
-          $and: [
-            { salePrice: { $exists: false } },
-            { price: { $gte: parseFloat(minPrice || 0), $lte: parseFloat(maxPrice || 999999) } }
-          ]
-        }
-      ];
-    }
-    
-    const sortOptions = {};
-    if (sortBy === 'price_asc') sortOptions.price = 1;
-    else if (sortBy === 'price_desc') sortOptions.price = -1;
-    else if (sortBy === 'name') sortOptions.name = 1;
-    else sortOptions.createdAt = -1;
-    
-    const skip = (page - 1) * limit;
-    
-    const products = await Product.find(filter)
-      .populate('brand category subCategory')
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(parseInt(limit));
-    
-    const total = await Product.countDocuments(filter);
-    const brands = await Product.distinct('brand', filter);
-    const brandDetails = await Brand.find({ _id: { $in: brands } });
-    
-    // Get price range for filters
-    const priceStats = await Product.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: null,
-          minPrice: { $min: '$price' },
-          maxPrice: { $max: '$price' }
-        }
-      }
-    ]);
-    
-    res.json({
-      products,
-      category,
-      filters: {
-        brands: brandDetails,
-        priceRange: priceStats[0] || { minPrice: 0, maxPrice: 0 }
-      },
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
-        totalProducts: total
-      }
-    });
-    
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Get related products
-export const getRelatedProducts = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const product = await Product.findById(id).populate('category brand');
-    
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    
-    const relatedProducts = await Product.find({
-      _id: { $ne: id },
-      $or: [
-        { category: product.category },
-        { brand: product.brand }
-      ],
-      isActive: true
-    })
-    .populate('brand category')
-    .limit(8)
-    .sort({ createdAt: -1 });
-    
-    res.json(relatedProducts);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Get product by ID - Enhanced with related data
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -611,7 +911,6 @@ export const getProductById = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Increment view count (optional)
     await Product.findByIdAndUpdate(id, { $inc: { 'ratings.count': 1 } });
 
     res.json(product);
@@ -620,7 +919,6 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// Update product quantity
 export const updateQuantity = async (req, res) => {
   try {
     const { id } = req.params;
@@ -657,360 +955,5 @@ export const updateQuantity = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
-  }
-};
-
-
-// Search products - Enhanced
-export const searchProducts = async (req, res) => {
-  try {
-    const { q, category, brand, minPrice, maxPrice, page = 1, limit = 12 } = req.query;
-    
-    if (!q) {
-      return res.status(400).json({ error: 'Search query is required' });
-    }
-    
-    let filter = {
-      isActive: true,
-      $or: [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { tabDescription: { $regex: q, $options: 'i' } },
-        { sku: { $regex: q, $options: 'i' } },
-        { 'brand.name': { $regex: q, $options: 'i' } },
-        { 'category.name': { $regex: q, $options: 'i' } }
-      ]
-    };
-    
-    if (category) filter.category = category;
-    if (brand) filter.brand = brand;
-    
-    // Price filtering
-    if (minPrice || maxPrice) {
-      filter.$and = filter.$and || [];
-      filter.$and.push({
-        $or: [
-          { 
-            salePrice: { 
-              $gte: parseFloat(minPrice || 0), 
-              $lte: parseFloat(maxPrice || 999999) 
-            } 
-          },
-          { 
-            price: { 
-              $gte: parseFloat(minPrice || 0), 
-              $lte: parseFloat(maxPrice || 999999) 
-            } 
-          }
-        ]
-      });
-    }
-    
-    const skip = (page - 1) * limit;
-    
-    const products = await Product.find(filter)
-      .populate('brand category subCategory')
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
-    
-    const total = await Product.countDocuments(filter);
-    
-    res.json({
-      products,
-      searchQuery: q,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
-        totalProducts: total
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-
-// Get products by brand
-export const getProductsByBrand = async (req, res) => {
-  try {
-    const { brandId } = req.params;
-    const { page = 1, limit = 12, sortBy = 'createdAt' } = req.query;
-    
-    const brand = await Brand.findById(brandId);
-    if (!brand) {
-      return res.status(404).json({ error: 'Brand not found' });
-    }
-    
-    const skip = (page - 1) * limit;
-    const sortOptions = {};
-    sortOptions[sortBy] = -1;
-    
-    const products = await Product.find({ 
-      brand: brandId, 
-      isActive: true 
-    })
-    .populate('brand category subCategory')
-    .sort(sortOptions)
-    .skip(skip)
-    .limit(parseInt(limit));
-    
-    const total = await Product.countDocuments({ brand: brandId, isActive: true });
-    
-    res.json({
-      products,
-      brand,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
-        totalProducts: total
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-import mongoose from 'mongoose';
-
-export const getProducts = async (req, res) => {
-  try {
-    const { 
-      brand, 
-      category, 
-      subCategory,
-      minPrice, 
-      maxPrice,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-      page = 1,
-      limit = 50
-    } = req.query;
-    
-    console.log('📦 Filter parameters received:', req.query);
-    
-    let filter = { isActive: true };
-    const sortOptions = {};
-    
-    // Helper function to find ID by dashedName
-    const findIdByDashedName = async (model, value) => {
-      if (!value) return null;
-      
-      // If it's a valid ObjectId, use it directly
-      if (mongoose.Types.ObjectId.isValid(value)) {
-        return value;
-      }
-      
-      // Otherwise, search by dashedName
-      const doc = await model.findOne({ dashedName: value });
-      return doc ? doc._id : null;
-    };
-
-    // Build filter object - handle both ID and dashedName
-    if (brand && brand !== '') {
-      console.log('Filtering by brand:', brand);
-      const brandId = await findIdByDashedName(Brand, brand);
-      if (brandId) {
-        filter.brand = brandId;
-      } else {
-        // If brand not found, return empty results
-        console.log('Brand not found:', brand);
-        return res.json({
-          products: [],
-          pagination: {
-            currentPage: parseInt(page),
-            totalPages: 0,
-            totalProducts: 0,
-            hasNext: false,
-            hasPrev: false
-          }
-        });
-      }
-    }
-    
-    if (category && category !== '') {
-      console.log('Filtering by category:', category);
-      const categoryId = await findIdByDashedName(Category, category);
-      if (categoryId) {
-        filter.category = categoryId;
-      } else {
-        console.log('Category not found:', category);
-        return res.json({
-          products: [],
-          pagination: {
-            currentPage: parseInt(page),
-            totalPages: 0,
-            totalProducts: 0,
-            hasNext: false,
-            hasPrev: false
-          }
-        });
-      }
-    }
-    
-    if (subCategory && subCategory !== '') {
-      console.log('Filtering by subCategory:', subCategory);
-      const subCategoryId = await findIdByDashedName(SubCategory, subCategory);
-      if (subCategoryId) {
-        filter.subCategory = subCategoryId;
-      } else {
-        console.log('SubCategory not found:', subCategory);
-        return res.json({
-          products: [],
-          pagination: {
-            currentPage: parseInt(page),
-            totalPages: 0,
-            totalProducts: 0,
-            hasNext: false,
-            hasPrev: false
-          }
-        });
-      }
-    }
-    
-    // Price filtering - handle both price and salePrice
-    if (minPrice || maxPrice) {
-      const priceConditions = [];
-      
-      // For products with salePrice
-      if (minPrice && maxPrice) {
-        priceConditions.push({
-          salePrice: { 
-            $exists: true, 
-            $ne: null,
-            $gte: parseFloat(minPrice), 
-            $lte: parseFloat(maxPrice) 
-          }
-        });
-      } else if (minPrice) {
-        priceConditions.push({
-          salePrice: { 
-            $exists: true, 
-            $ne: null,
-            $gte: parseFloat(minPrice) 
-          }
-        });
-      } else if (maxPrice) {
-        priceConditions.push({
-          salePrice: { 
-            $exists: true, 
-            $ne: null,
-            $lte: parseFloat(maxPrice) 
-          }
-        });
-      }
-      
-      // For products without salePrice (use regular price)
-      if (minPrice && maxPrice) {
-        priceConditions.push({
-          $and: [
-            { $or: [{ salePrice: { $exists: false } }, { salePrice: null }] },
-            { price: { $gte: parseFloat(minPrice), $lte: parseFloat(maxPrice) } }
-          ]
-        });
-      } else if (minPrice) {
-        priceConditions.push({
-          $and: [
-            { $or: [{ salePrice: { $exists: false } }, { salePrice: null }] },
-            { price: { $gte: parseFloat(minPrice) } }
-          ]
-        });
-      } else if (maxPrice) {
-        priceConditions.push({
-          $and: [
-            { $or: [{ salePrice: { $exists: false } }, { salePrice: null }] },
-            { price: { $lte: parseFloat(maxPrice) } }
-          ]
-        });
-      }
-      
-      if (priceConditions.length > 0) {
-        filter.$or = priceConditions;
-      }
-    }
-
-    // Sort options
-    if (sortBy === 'price') {
-      sortOptions.price = sortOrder === 'desc' ? -1 : 1;
-    } else if (sortBy === 'name') {
-      sortOptions.name = sortOrder === 'desc' ? -1 : 1;
-    } else if (sortBy === 'rating') {
-      sortOptions.rating = sortOrder === 'desc' ? -1 : 1;
-    } else {
-      sortOptions.createdAt = sortOrder === 'desc' ? -1 : 1;
-    }
-
-    const skip = (page - 1) * limit;
-    
-    console.log('🔍 Final filter:', JSON.stringify(filter, null, 2));
-    
-    const products = await Product.find(filter)
-      .populate('brand category subCategory')
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Product.countDocuments(filter);
-
-    console.log(`✅ Found ${products.length} products out of ${total} total`);
-    
-    res.json({
-      products,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
-        totalProducts: total,
-        hasNext: page < Math.ceil(total / limit),
-        hasPrev: page > 1
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error in getProducts:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
-// In your ProductDetail component
-export const downloadPdf = async () => {
-  try {
-    // Use server-side proxy download
-    const response = await fetch(`${API_BASE_URL}/products/${id}/download-pdf`);
-    
-    if (!response.ok) {
-      throw new Error(`Server returned ${response.status}`);
-    }
-
-    // Get the blob
-    const blob = await response.blob();
-    
-    // Create download link
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    
-    // Get filename from headers or use default
-    const contentDisposition = response.headers.get('content-disposition');
-    let fileName = product.pdfOriginalName || `${product.name}_brochure.pdf`;
-    
-    if (contentDisposition) {
-      const fileNameMatch = contentDisposition.match(/filename="(.+?)"/);
-      if (fileNameMatch) fileName = fileNameMatch[1];
-    }
-    
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Clean up
-    window.URL.revokeObjectURL(url);
-    
-    console.log('✅ PDF downloaded successfully:', fileName);
-    
-  } catch (error) {
-    console.error('❌ Download failed:', error);
-    
-    // Fallback: Open in new tab
-    alert('Direct download failed. Opening PDF in new tab...');
-    window.open(product.pdf, '_blank');
   }
 };

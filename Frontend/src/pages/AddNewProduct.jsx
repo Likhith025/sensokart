@@ -14,11 +14,11 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
     const textarea = textareaRef.current;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    
+
     // Get the display text (without HTML tags)
     const displayText = getDisplayText(value);
     const selectedText = displayText.substring(start, end);
-    
+
     if (!selectedText) return;
 
     let formattedText = '';
@@ -41,11 +41,11 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
     // Replace the selected text with formatted version in the HTML
     const beforeText = displayText.substring(0, start);
     const afterText = displayText.substring(end);
-    
+
     // Convert the new text back to HTML format
     const newDisplayText = beforeText + formattedText + afterText;
     const newHtml = newDisplayText.replace(/\n/g, '<br>');
-    
+
     onChange(newHtml);
 
     setTimeout(() => {
@@ -60,17 +60,17 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
   const handleList = (type) => {
     const cursorPos = textareaRef.current?.selectionStart || 0;
     const displayText = getDisplayText(value);
-    
+
     const textBefore = displayText.substring(0, cursorPos);
     const textAfter = displayText.substring(cursorPos);
-    
+
     let newText = '';
     if (type === 'bullet') {
       newText = textBefore + (textBefore.endsWith('\n') || !textBefore ? '' : '\n') + '• ' + textAfter;
     } else if (type === 'number') {
       newText = textBefore + (textBefore.endsWith('\n') || !textBefore ? '' : '\n') + '1. ' + textAfter;
     }
-    
+
     // Convert back to HTML
     const newHtml = newText.replace(/\n/g, '<br>');
     onChange(newHtml);
@@ -93,17 +93,17 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
   // Convert HTML back to text with proper line breaks for editing
   const getDisplayText = (html) => {
     if (!html) return '';
-    
+
     // Convert <br> tags back to newlines for editing
     return html.replace(/<br\s*\/?>/gi, '\n')
-               .replace(/<\/p>/gi, '\n\n')
-               .replace(/<\/div>/gi, '\n')
-               .replace(/<[^>]*>/g, '')
-               .replace(/&nbsp;/g, ' ')
-               .replace(/&amp;/g, '&')
-               .replace(/&lt;/g, '<')
-               .replace(/&gt;/g, '>')
-               .replace(/&quot;/g, '"');
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"');
   };
 
   return (
@@ -152,7 +152,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
           1. List
         </button>
       </div>
-      
+
       {/* Textarea */}
       <div className="p-1">
         <textarea
@@ -165,11 +165,11 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
           style={{ lineHeight: '1.6' }}
         />
       </div>
-      
+
       {/* Preview */}
       <div className="border-t border-gray-200 p-3 bg-gray-50">
         <label className="text-xs text-gray-500 font-medium mb-2 block">Preview:</label>
-        <div 
+        <div
           className="text-sm mt-1 prose prose-sm max-w-none"
           style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}
           dangerouslySetInnerHTML={{ __html: value }}
@@ -202,6 +202,7 @@ const AddNewProduct = () => {
     quantity: '',
     features: '',
     sku: '',
+    priority: '',
     isActive: true
   });
 
@@ -382,8 +383,8 @@ const AddNewProduct = () => {
 
       const response = await fetch(`${API_BASE_URL}/products/add`, {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}` 
+        headers: {
+          'Authorization': `Bearer ${token}`
         },
         body: formDataToSend,
       });
@@ -403,7 +404,7 @@ const AddNewProduct = () => {
       const result = await response.json();
 
       setSuccess('Product created successfully!');
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -417,13 +418,14 @@ const AddNewProduct = () => {
         quantity: '',
         features: '',
         sku: '',
+        priority: '',
         isActive: true
       });
       setSpecsFields([{ key: '', value: '' }]);
       setCoverPhoto(null);
       setImages([]);
       setPdf(null);
-      
+
       // Clear file inputs
       if (coverPhotoInputRef.current) coverPhotoInputRef.current.value = '';
       if (imagesInputRef.current) imagesInputRef.current.value = '';
@@ -568,6 +570,21 @@ const AddNewProduct = () => {
                       min="0"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Priority
+                      <span className="text-xs text-gray-500 ml-2">(lower = higher priority)</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="priority"
+                      value={formData.priority}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text text-sm md:text-base"
+                      placeholder="999999"
+                      min="0"
+                    />
+                  </div>
                 </div>
 
                 {/* Categories */}
@@ -624,7 +641,7 @@ const AddNewProduct = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
                   <RichTextEditor
                     value={formData.description}
-                    onChange={(value) => setFormData({...formData, description: value})}
+                    onChange={(value) => setFormData({ ...formData, description: value })}
                     placeholder="Enter main product description..."
                   />
                 </div>
@@ -633,7 +650,7 @@ const AddNewProduct = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tab Description (Sub Description)</label>
                   <RichTextEditor
                     value={formData.tabDescription}
-                    onChange={(value) => setFormData({...formData, tabDescription: value})}
+                    onChange={(value) => setFormData({ ...formData, tabDescription: value })}
                     placeholder="Enter detailed description for the tab section..."
                   />
                 </div>

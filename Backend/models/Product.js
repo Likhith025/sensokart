@@ -82,21 +82,26 @@ const productSchema = new mongoose.Schema({
     type: String,
     unique: true
   },
-  tabDescription:{
+  tabDescription: {
     type: String,
   },
-  pdf:{
-    type:String
+  pdf: {
+    type: String
   },
   pdfOriginalName: {
     type: String
+  },
+  priority: {
+    type: Number,
+    default: 999999,
+    min: 0
   },
 }, {
   timestamps: true
 });
 
 // ADD THIS MIDDLEWARE to automatically generate dashedName
-productSchema.pre('save', function(next) {
+productSchema.pre('save', function (next) {
   if (this.isModified('name') || !this.dashedName) {
     // Simply replace spaces with hyphens, keep original case
     this.dashedName = this.name.replace(/\s+/g, '-');
