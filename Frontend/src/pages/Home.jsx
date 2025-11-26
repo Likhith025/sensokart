@@ -30,10 +30,9 @@ const Home = () => {
       if (!randomProductsResponse.ok) throw new Error('Failed to fetch products');
       const randomProductsData = await randomProductsResponse.json();
       const allProducts = randomProductsData.products || randomProductsData;
-      const shuffledProducts = Array.isArray(allProducts)
-        ? [...allProducts].sort(() => 0.5 - Math.random()).slice(0, 10)
-        : [];
-      setTopProducts(shuffledProducts);
+
+      // Use products as returned from API (sorted by priority)
+      setTopProducts(allProducts.slice(0, 10));
 
       if (priorities.length === 0) {
         setPrioritySections([]);
@@ -184,7 +183,7 @@ const Home = () => {
 
             {/* Description */}
             <p className="text-xs text-gray-600 mb-4 line-clamp-2 flex-grow">
-              {product.description || 'High-quality precision instrument.'}
+              {product.description ? product.description.replace(/<[^>]*>?/gm, '') : 'High-quality precision instrument.'}
             </p>
           </div>
         </Link>

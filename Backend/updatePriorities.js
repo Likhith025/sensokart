@@ -10,10 +10,10 @@ await connectDB();
 console.log('🔧 Updating all products with default priority...');
 
 try {
-    // Update all products that don't have a priority field
+    // Update all products that don't have a priority field or have null priority
     const result = await Product.updateMany(
-        { priority: { $exists: false } },
-        { $set: { priority: 999999 } }
+        { $or: [{ priority: { $exists: false } }, { priority: null }] },
+        { $set: { priority: 9999 } }
     );
 
     console.log(`✅ Updated ${result.modifiedCount} products with default priority`);

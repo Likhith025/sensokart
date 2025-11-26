@@ -477,7 +477,7 @@ export const addProduct = async (req, res) => {
       manufacturer,
       modelNo,
       measuringParameters,
-      priority = 999999 // Default to low priority if not specified
+      priority = 9999 // Default to low priority if not specified
     } = req.body;
 
     console.log('📦 Form data received:', req.body);
@@ -555,7 +555,7 @@ export const addProduct = async (req, res) => {
       manufacturer,
       modelNo,
       measuringParameters,
-      priority: priority ? parseInt(priority) : 999999
+      priority: priority ? parseInt(priority) : 9999
     });
 
     await product.save();

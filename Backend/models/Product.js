@@ -93,7 +93,7 @@ const productSchema = new mongoose.Schema({
   },
   priority: {
     type: Number,
-    default: 999999,
+    default: 9999,
     min: 0
   },
 }, {

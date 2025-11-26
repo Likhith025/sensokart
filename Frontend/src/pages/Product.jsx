@@ -662,31 +662,7 @@ const Product = ({ categoryItem }) => {
             </div>
 
             <div className="space-y-6">
-              {/* Sort Options */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-                <select
-                  value={filters.sortBy}
-                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="createdAt">Newest First</option>
-                  <option value="price">Price</option>
-                  <option value="name">Name</option>
-                </select>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
-                <select
-                  value={filters.sortOrder}
-                  onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="desc">Descending</option>
-                  <option value="asc">Ascending</option>
-                </select>
-              </div>
 
               {/* Brand Filter */}
               <div>
@@ -842,7 +818,7 @@ const Product = ({ categoryItem }) => {
                                 Subcategory: {product.subCategory?.name || 'N/A'}
                               </p>
                               <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                                {product.description}
+                                {product.description ? product.description.replace(/<[^>]*>?/gm, '') : ''}
                               </p>
                               <div className="flex items-center justify-between mb-3">
                                 <div>
