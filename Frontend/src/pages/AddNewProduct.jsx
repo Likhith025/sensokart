@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import Topbar from '../components/TopBar';
 import API_BASE_URL from '../src';
+import ImageCropper from '../components/ImageCropper';
 
 // Fixed Rich Text Editor Component with proper line break handling
 const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." }) => {
@@ -221,6 +222,14 @@ const AddNewProduct = () => {
   const imagesInputRef = React.useRef(null);
   const pdfInputRef = React.useRef(null);
 
+  // States for Image Cropper
+  const [cropperData, setCropperData] = useState({
+    isOpen: false,
+    image: null,
+    type: null, // 'cover' or 'images'
+    index: null
+  });
+
   useEffect(() => {
     const savedCart = Cookies.get('cart');
     if (savedCart) {
@@ -336,6 +345,35 @@ const AddNewProduct = () => {
 
   const removeSpecsField = (index) => {
     setSpecsFields(specsFields.filter((_, i) => i !== index));
+  };
+
+  const handleOpenCropper = (image, type, index = null) => {
+    let imageUrl;
+    if (image instanceof File) {
+      imageUrl = URL.createObjectURL(image);
+    } else {
+      imageUrl = image;
+    }
+    setCropperData({
+      isOpen: true,
+      image: imageUrl,
+      type,
+      index
+    });
+  };
+
+  const handleCropComplete = (croppedBlob) => {
+    const croppedFile = new File([croppedBlob], `cropped_${cropperData.type}_${Date.now()}.jpg`, { type: 'image/jpeg' });
+    
+    if (cropperData.type === 'cover') {
+      setCoverPhoto(croppedFile);
+    } else if (cropperData.type === 'images') {
+      const newImages = [...images];
+      newImages[cropperData.index] = croppedFile;
+      setImages(newImages);
+    }
+    
+    setCropperData({ isOpen: false, image: null, type: null, index: null });
   };
 
   const handleSubmit = async (e) => {
@@ -728,11 +766,23 @@ const AddNewProduct = () => {
                       />
                       {coverPhoto && (
                         <div className="flex items-center gap-2 mt-2">
-                          <img
-                            src={URL.createObjectURL(coverPhoto)}
-                            alt="Cover preview"
-                            className="w-16 h-16 object-cover rounded-md"
-                          />
+                          <div className="relative">
+                            <img
+                              src={URL.createObjectURL(coverPhoto)}
+                              alt="Cover preview"
+                              className="w-16 h-16 object-cover rounded-md"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCropper(coverPhoto, 'cover')}
+                              className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-gray-200 hover:bg-gray-100 cursor-pointer"
+                              title="Crop Image"
+                            >
+                              <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          </div>
                           <div className="flex-1">
                             <p className="text-sm text-gray-600 truncate">{coverPhoto.name}</p>
                             <button
@@ -803,29 +853,52 @@ const AddNewProduct = () => {
                     />
                   </div>
                   {images.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-600 mb-2">Selected Images:</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {images.map((img, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={URL.createObjectURL(img)}
-                              alt={`Preview ${index + 1}`}
-                              className="w-full h-20 object-cover rounded-md"
-                            />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+                      {images.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={URL.createObjectURL(image)}
+                            alt={`Preview ${index}`}
+                            className="w-full h-24 object-cover rounded-md border border-gray-200"
+                          />
+                          <div className="absolute top-1 right-1 flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCropper(image, 'images', index)}
+                              className="bg-white rounded-full p-1 shadow-md border border-gray-200 hover:bg-gray-100 cursor-pointer"
+                              title="Crop Image"
+                            >
+                              <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
                             <button
                               type="button"
                               onClick={() => removeImage(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
+                              className="bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 cursor-pointer"
+                              title="Remove Image"
                             >
-                              ×
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
                             </button>
                           </div>
-                        ))}
-                      </div>
+                          <p className="text-xs text-gray-500 mt-1 truncate px-1">{image.name}</p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
+
+                {/* Cropper Modal */}
+                {cropperData.isOpen && (
+                  <ImageCropper
+                    image={cropperData.image}
+                    onCropComplete={handleCropComplete}
+                    onCancel={() => setCropperData({ isOpen: false, image: null, type: null, index: null })}
+                    aspect={1}
+                  />
+                )}
 
                 {/* Submit Buttons */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-4 border-t border-gray-200">

@@ -426,11 +426,28 @@ export const updateProduct = async (req, res) => {
       delete updateData.removePdf;
     }
 
-    // Convert numeric fields
-    if (updateData.price) updateData.price = parseFloat(updateData.price);
-    if (updateData.salePrice) updateData.salePrice = parseFloat(updateData.salePrice);
-    if (updateData.quantity) updateData.quantity = parseInt(updateData.quantity);
-    if (updateData.priority !== undefined) updateData.priority = parseInt(updateData.priority);
+    // Convert numeric fields safely to prevent Mongoose CastErrors with "NaN" or "null"
+    const safeParseNumeric = (val, parser) => {
+      if (val === 'null' || val === '' || val === null || val === undefined) return null;
+      const num = parser(val);
+      return isNaN(num) ? null : num;
+    };
+
+    if ('price' in updateData) {
+      updateData.price = safeParseNumeric(updateData.price, parseFloat);
+      if (updateData.price === null) delete updateData.price; // keep original if invalid
+    }
+    if ('salePrice' in updateData) {
+      updateData.salePrice = safeParseNumeric(updateData.salePrice, parseFloat);
+    }
+    if ('quantity' in updateData) {
+      updateData.quantity = safeParseNumeric(updateData.quantity, parseInt);
+      if (updateData.quantity === null) delete updateData.quantity; // keep original if invalid
+    }
+    if ('priority' in updateData) {
+      updateData.priority = safeParseNumeric(updateData.priority, parseInt);
+      if (updateData.priority === null) delete updateData.priority; // keep original if invalid
+    }
 
     console.log('🔄 Final update data:', JSON.stringify(updateData, null, 2));
 
@@ -539,12 +556,12 @@ export const addProduct = async (req, res) => {
       dashedName,
       description,
       tabDescription: tabDescription || '',
-      price: parseFloat(price),
-      salePrice: salePrice ? parseFloat(salePrice) : undefined,
+      price: (!isNaN(parseFloat(price)) && price !== 'null') ? parseFloat(price) : 0,
+      salePrice: (salePrice && salePrice !== 'null' && !isNaN(parseFloat(salePrice))) ? parseFloat(salePrice) : undefined,
       brand,
       category,
       subCategory,
-      quantity: quantity ? parseInt(quantity) : 0,
+      quantity: (quantity && quantity !== 'null' && !isNaN(parseInt(quantity))) ? parseInt(quantity) : 0,
       coverPhoto: coverPhotoUrl,
       images: imageUrls,
       pdf: pdfUrl,

@@ -791,7 +791,7 @@ const Product = ({ categoryItem }) => {
                                 <img
                                   src={product.coverPhoto}
                                   alt={product.name}
-                                  className="w-full h-48 object-cover"
+                                  className="w-full h-48 object-contain p-2 bg-white"
                                 />
                               ) : (
                                 <div className="w-full h-48 bg-gray-200 flex items-center justify-center">

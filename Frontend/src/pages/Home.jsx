@@ -158,7 +158,7 @@ const Home = () => {
               <img
                 src={product.coverPhoto}
                 alt={product.name}
-                className="w-full h-40 object-cover"
+                className="w-full h-40 object-contain p-2 bg-white"
                 loading="lazy"
               />
             ) : (

@@ -4,6 +4,7 @@ import Cookies from 'js-cookie';
 import API_BASE_URL from '../src';
 import { useCart } from '../context/CartContext';
 import Topbar from '../components/TopBar';
+import ImageCropper from '../components/ImageCropper';
 
 // Fixed Rich Text Editor Component with proper line break handling
 const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." }) => {
@@ -256,6 +257,14 @@ const ProductDetail = () => {
   const coverPhotoInputRef = React.useRef(null);
   const imagesInputRef = React.useRef(null);
   const pdfInputRef = React.useRef(null);
+
+  // States for Image Cropper
+  const [cropperData, setCropperData] = useState({
+    isOpen: false,
+    image: null,
+    type: null, // 'cover', 'new-images', 'existing-images', 'existing-cover'
+    index: null
+  });
 
   // Fetch product data using dashedName
   useEffect(() => {
@@ -519,6 +528,42 @@ const ProductDetail = () => {
 
   const removeEditSpecsField = (index) => {
     setEditSpecsFields(editSpecsFields.filter((_, i) => i !== index));
+  };
+
+  const handleOpenCropper = (image, type, index = null) => {
+    let imageUrl;
+    if (image instanceof File) {
+      imageUrl = URL.createObjectURL(image);
+    } else {
+      imageUrl = image;
+    }
+    setCropperData({
+      isOpen: true,
+      image: imageUrl,
+      type,
+      index
+    });
+  };
+
+  const handleCropComplete = (croppedBlob) => {
+    const croppedFile = new File([croppedBlob], `cropped_${cropperData.type}_${Date.now()}.jpg`, { type: 'image/jpeg' });
+    
+    if (cropperData.type === 'cover' || cropperData.type === 'existing-cover') {
+      setEditCoverPhoto(croppedFile);
+      setRemoveCoverPhoto(false);
+    } else if (cropperData.type === 'new-images') {
+      const newImages = [...editImages];
+      newImages[cropperData.index] = croppedFile;
+      setEditImages(newImages);
+    } else if (cropperData.type === 'existing-images') {
+      // For existing images, we treat the cropped version as a new upload
+      // and remove the old one
+      const existingImageUrl = product.images.filter(img => !imagesToRemove.includes(img))[cropperData.index];
+      setImagesToRemove([...imagesToRemove, existingImageUrl]);
+      setEditImages([...editImages, croppedFile]);
+    }
+    
+    setCropperData({ isOpen: false, image: null, type: null, index: null });
   };
 
   // Preview functionality
@@ -1247,13 +1292,25 @@ const ProductDetail = () => {
                                   alt="Current Cover"
                                   className="w-20 h-20 object-cover rounded-md"
                                 />
-                                <button
-                                  type="button"
-                                  onClick={() => setRemoveCoverPhoto(true)}
-                                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600 transition-all duration-200 cursor-pointer text-xs"
-                                >
-                                  ×
-                                </button>
+                                <div className="absolute -top-2 -right-2 flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenCropper(product.coverPhoto, 'existing-cover')}
+                                    className="bg-white rounded-full p-1 shadow-md border border-gray-200 hover:bg-gray-100 cursor-pointer"
+                                    title="Crop Image"
+                                  >
+                                    <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setRemoveCoverPhoto(true)}
+                                    className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600 transition-all duration-200 cursor-pointer text-xs"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1274,7 +1331,24 @@ const ProductDetail = () => {
                             />
                             {editCoverPhoto && (
                               <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-600 truncate">{editCoverPhoto.name}</span>
+                                <div className="relative">
+                                  <img
+                                    src={URL.createObjectURL(editCoverPhoto)}
+                                    alt="New Cover Preview"
+                                    className="w-12 h-12 object-cover rounded-md"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenCropper(editCoverPhoto, 'cover')}
+                                    className="absolute -top-1 -right-1 bg-white rounded-full p-1 shadow-md border border-gray-200 hover:bg-gray-100 cursor-pointer"
+                                    title="Crop Image"
+                                  >
+                                    <svg className="w-2 h-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                                <span className="text-sm text-gray-600 truncate max-w-[100px]">{editCoverPhoto.name}</span>
                                 <button
                                   type="button"
                                   onClick={removeEditCoverPhoto}
@@ -1352,13 +1426,25 @@ const ProductDetail = () => {
                                       alt={`Product ${index + 1}`}
                                       className="w-16 h-16 object-cover rounded-md"
                                     />
-                                    <button
-                                      type="button"
-                                      onClick={() => removeExistingImage(img)}
-                                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
-                                    >
-                                      ×
-                                    </button>
+                                    <div className="absolute -top-2 -right-2 flex gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenCropper(img, 'existing-images', index)}
+                                        className="bg-white rounded-full p-1 shadow-md border border-gray-200 hover:bg-gray-100 cursor-pointer"
+                                        title="Crop Image"
+                                      >
+                                        <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeExistingImage(img)}
+                                        className="bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                             </div>
@@ -1392,19 +1478,41 @@ const ProductDetail = () => {
                                     alt={`New ${index + 1}`}
                                     className="w-16 h-16 object-cover rounded-md"
                                   />
-                                  <button
-                                    type="button"
-                                    onClick={() => removeEditImage(index)}
-                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
-                                  >
-                                    ×
-                                  </button>
+                                  <div className="absolute -top-2 -right-2 flex gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenCropper(img, 'new-images', index)}
+                                      className="bg-white rounded-full p-1 shadow-md border border-gray-200 hover:bg-gray-100 cursor-pointer"
+                                      title="Crop Image"
+                                    >
+                                      <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeEditImage(index)}
+                                      className="bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 cursor-pointer"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
                           </div>
                         )}
                       </div>
+
+                      {/* Cropper Modal */}
+                      {cropperData.isOpen && (
+                        <ImageCropper
+                          image={cropperData.image}
+                          onCropComplete={handleCropComplete}
+                          onCancel={() => setCropperData({ isOpen: false, image: null, type: null, index: null })}
+                          aspect={1}
+                        />
+                      )}
 
                       {/* Submit Buttons */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -1668,7 +1776,7 @@ const ProductDetail = () => {
                       <img
                         src={relatedProduct.coverPhoto || relatedProduct.images[0]}
                         alt={relatedProduct.name}
-                        className="w-full h-32 md:h-48 object-cover"
+                        className="w-full h-32 md:h-48 object-contain p-2 bg-white"
                       />
                     </div>
                     <div className="p-3 md:p-4">
